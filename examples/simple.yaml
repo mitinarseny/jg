@@ -1,0 +1,26 @@
+files:
+  - file1
+  - file2
+
+root:
+  type: array
+  range: 10
+  elements:
+    type: object
+    fields:
+      field1: explicit string
+      field2:
+        type: string
+        value: more explicit string
+      field3:
+        type: string
+        from: file1
+      field4:
+        type: integer
+        from: file2
+      field5:
+        type: enum
+        choices:
+          - 1
+          - 2
+          - 3
