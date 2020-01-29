@@ -30,9 +30,9 @@ func (n *Node) Generate() interface{} {
 		}
 		return res
 	case Array:
-		elNum := n.Range.Min + rand.Intn(n.Range.Max-n.Range.Min+1)
+		elNum := n.Range.Min + uint(rand.Intn(int(n.Range.Max-n.Range.Min+1)))
 		res := make([]interface{}, 0, elNum)
-		for i := 0; i < elNum; i++ {
+		for i := uint(0); i < elNum; i++ {
 			res = append(res, n.Elements.Generate())
 		}
 		return res
@@ -43,13 +43,13 @@ func (n *Node) Generate() interface{} {
 }
 
 type Range struct {
-	Min  int `yaml:"min"`
-	Max  int `yaml:"min"`
-	Step int `yaml:"step"`
+	Min  uint `yaml:"min"`
+	Max  uint `yaml:"min"`
+	Step uint `yaml:"step"`
 }
 
 func (r *Range) UnmarshalYAML(value *yaml.Node) error {
-	var exact int
+	var exact uint
 	if err := value.Decode(&exact); err == nil {
 		*r = Range{
 			Min:  exact,
@@ -60,9 +60,9 @@ func (r *Range) UnmarshalYAML(value *yaml.Node) error {
 	}
 
 	full := struct {
-		Min  int `yaml:"min"`
-		Max  int `yaml:"min"`
-		Step int `yaml:"step"`
+		Min  uint `yaml:"min"`
+		Max  uint `yaml:"min"`
+		Step uint `yaml:"step"`
 	}{
 		Min:  0,
 		Max:  10,
