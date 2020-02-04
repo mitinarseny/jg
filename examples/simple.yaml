@@ -1,21 +1,38 @@
-files:
-  - file1
-  - file2
+#files:
+#  file1:
 
 root:
-  field1: explicit string
-  field2:
-    type: string
-    value: more explicit string
-  field3:
-    type: string
-    from: file1
-  field4:
+  boolInline: bool
+  boolExplicit:
+    type: bool
+
+  integerInline: integer # default: [0, 100]
+  integerExplicit:
     type: integer
-    from: file2
-  field5:
-    type: enum
-    choices:
-      - 1
-      - 2
-      - 3
+    range: [0, 100]
+
+  floatInline: float # default: [0,1)
+  floatExplicit:
+    type: float
+    range: [0, 1]
+
+  stringExplicit:
+    type: string # type is optional, only strings can be read from file
+    from: file1
+
+  arrayExplicit:
+    type: array
+    range: 100 # required
+    elements: integer
+
+  objectExplicit:
+    type: object # required
+    fields:
+      field1: integer
+
+#  enumExplicit:
+#    type: enum # required
+#    choices:
+#      - 1
+#      - 2
+#      - 3

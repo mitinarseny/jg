@@ -36,7 +36,9 @@ func run(schemaPath string, arrayLen int) error {
 	}
 
 	var sch schema.Schema
-	if err := yaml.NewDecoder(f).Decode(&sch); err != nil {
+	decoder := yaml.NewDecoder(f)
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&sch); err != nil {
 		return fmt.Errorf("unable to unmarshal: %w", err)
 	}
 

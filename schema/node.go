@@ -8,213 +8,212 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Node struct {
-	Type     Type             `yaml:"type"`
-	Value    interface{}      `yaml:"value"`
-	Fields   map[string]Node `yaml:"fields"`
-	Elements *Node            `yaml:"elements"`
-	Range    Range            `yaml:"range"`
-	Choices  []interface{}    `yaml:"choices"`
-	From     *string          `yaml:"from"`
+type Node interface {
+	Generate() (interface{}, error)
 }
 
-func (n *Node) Generate() interface{} {
-	if n.Value != nil {
-		return n.Value
-	}
-	switch n.Type {
-	case Object:
-		res := make(map[string]interface{}, len(n.Fields))
-		for field, node := range n.Fields {
-			res[field] = node.Generate()
-		}
-		return res
-	case Array:
-		elNum := n.Range.Min + uint(rand.Intn(int(n.Range.Max-n.Range.Min+1)))
-		res := make([]interface{}, 0, elNum)
-		for i := uint(0); i < elNum; i++ {
-			res = append(res, n.Elements.Generate())
-		}
-		return res
-	case Enum:
-		return n.Choices[rand.Intn(len(n.Choices))]
-	}
-	return nil
+type Bool struct{}
+
+func (b *Bool) Generate() (interface{}, error) {
+	return rand.Float64() < 0.5, nil
 }
 
-type Range struct {
-	Min  uint `yaml:"min"`
-	Max  uint `yaml:"min"`
-	Step uint `yaml:"step"`
+type Integer struct {
+	Min, Max int
 }
 
-func (r *Range) UnmarshalYAML(value *yaml.Node) error {
-	var exact uint
-	if err := value.Decode(&exact); err == nil {
-		*r = Range{
-			Min:  exact,
-			Max:  exact,
-			Step: 1,
-		}
-		return nil
-	}
-
-	full := struct {
-		Min  uint `yaml:"min"`
-		Max  uint `yaml:"min"`
-		Step uint `yaml:"step"`
-	}{
-		Min:  0,
-		Max:  10,
-		Step: 1,
-	}
-	if err := value.Decode(&full); err != nil {
-		return err
-	}
-	*r = Range{
-		Min:  full.Min,
-		Max:  full.Max,
-		Step: full.Step,
-	}
-	return nil
+func (i *Integer) Generate() (interface{}, error) {
+	return rand.Int63(), nil
 }
 
-func (n *Node) UnmarshalYAML(value *yaml.Node) error {
-	var aux interface{}
+type Float struct {
+	Min, Max float64
+}
+
+func (f *Float) Generate() (interface{}, error) {
+	return rand.Float64(), nil
+}
+
+type String struct {
+}
+
+func (s *String) Generate() (interface{}, error) {
+	return "example", nil
+}
+
+type Array struct {
+	Min, Max int
+	Elements Node
+}
+
+func (a *Array) UnmarshalYAML(value *yaml.Node) error {
+	var aux struct {
+		Min      int  `yaml:"min"`
+		Max      int  `yaml:"max"`
+		Elements node `yaml:"elements"`
+	}
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
-	switch aux.(type) {
-	case bool:
-		*n = Node{
-			Type:  Bool,
-			Value: aux,
-		}
-		return nil
-	case string:
-		*n = Node{
-			Type:  String,
-			Value: aux,
-		}
-		return nil
-	case int:
-		*n = Node{
-			Type:  Integer,
-			Value: aux,
-		}
-		return nil
-	case []interface{}:
-		*n = Node{
-			Type:  Array,
-			Value: aux,
-		}
-		return nil
+	*a = Array{
+		Min:      aux.Min,
+		Max:      aux.Max,
+		Elements: aux.Elements.Node,
 	}
-
-	var full struct {
-		Type     *Type            `yaml:"type"`
-		Value    interface{}      `yaml:"value"`
-		Fields   map[string]Node `yaml:"fields"`
-		Elements *Node            `yaml:"elements"`
-		Range    Range            `yaml:"range"`
-		Choices  []interface{}    `yaml:"choices"`
-		From     *string          `yaml:"from"`
-	}
-	if err := value.Decode(&full); err != nil {
-		return err
-	}
-
-	// type should be defined explicitly
-	if full.Type == nil {
-		return errors.New("empty type")
-	}
-
-	*n = Node{
-		Type:     *full.Type,
-		Value:    full.Value,
-		Fields:   full.Fields,
-		Elements: full.Elements,
-		Range:    full.Range,
-		Choices:  full.Choices,
-		From:     full.From,
-	}
-
-	return n.validate()
-}
-
-func (n *Node) validate() error {
-	if n.Value != nil {
-		if err := n.checkValueType(); err != nil {
-			return fmt.Errorf("wrong type: %w", err)
-		}
-		switch {
-		case n.From != nil:
-			return errors.New("combination of value and from")
-		case n.Elements != nil:
-			return errors.New("combination of value and elements")
-		case n.Choices != nil:
-			return errors.New("combination of value and choices")
-		}
-	}
-
-	switch {
-	case n.Type == Array && n.Elements == nil:
-		return errors.New("array must specify its elements")
-	case n.Type == Object && n.Fields == nil:
-		return errors.New("object must specify its fields")
-	}
-
 	return nil
 }
 
-func (n *Node) checkValueType() error {
-	var actual Type
-	switch n.Value.(type) {
-	case bool:
-		actual = Bool
-	case string:
-		actual = String
-	case int:
-		actual = Integer
-	case []interface{}:
-		actual = Array
+func (a *Array) Generate() (interface{}, error) {
+	elNum := int64(a.Min) + rand.Int63n(int64(a.Max-a.Min+1))
+	res := make([]interface{}, 0, elNum)
+	for i := int64(0); i < elNum; i++ {
+		gen, err := a.Elements.Generate()
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, gen)
+	}
+	return res, nil
+}
+
+type Object struct {
+	Fields map[string]Node `yaml:"fields"`
+}
+
+func (o *Object) UnmarshalYAML(value *yaml.Node) error {
+	var aux struct {
+		Fields nodeMap `yaml:"fields"`
+	}
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*o = Object{Fields: aux.Fields}
+	return nil
+}
+
+func (o *Object) Generate() (interface{}, error) {
+	res := make(map[string]interface{}, len(o.Fields))
+	var err error
+	for field, node := range o.Fields {
+		res[field], err = node.Generate()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+	// return nil, errors.New("not implemented yet")
+}
+
+type nodeMap map[string]Node
+
+func (n *nodeMap) UnmarshalYAML(value *yaml.Node) error {
+	var aux map[string]node
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*n = make(nodeMap, len(aux))
+	for k, v := range aux {
+		(*n)[k] = v.Node
+	}
+	return nil
+}
+
+type nodeSlice []Node
+
+func (n *nodeSlice) UnmarshalYAML(value *yaml.Node) error {
+	var aux []node
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*n = make(nodeSlice, 0, len(aux))
+	for _, v := range aux {
+		*n = append(*n, v)
+	}
+	return nil
+}
+
+// node is a helper struct for unmarshal
+type node struct {
+	Node
+}
+
+func (n *node) UnmarshalYAML(value *yaml.Node) error {
+	switch value.Kind {
+	case yaml.ScalarNode:
+		var typ string
+		if err := value.Decode(&typ); err != nil {
+			return err
+		}
+		switch typ {
+		case "bool":
+			n.Node = &Bool{}
+		case "integer":
+			n.Node = &Integer{
+				Min: 0,
+				Max: 100,
+			}
+		case "float":
+			n.Node = &Float{
+				Min: 0,
+				Max: 1,
+			}
+		case "array", "object", "enum":
+			return fmt.Errorf("unable to unmarshal inline %q", typ)
+		default:
+			return fmt.Errorf("unsupported type: %q", typ)
+		}
+	case yaml.MappingNode:
+		var aux struct {
+			Type *string `yaml:"type"`
+		}
+		if err := value.Decode(&aux); err != nil {
+			return err
+		}
+		if aux.Type == nil {
+			return errors.New("type should be specified")
+		}
+		switch typ := *aux.Type; typ {
+		case "bool":
+			var tmp Bool
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "integer":
+			var tmp Integer
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "float":
+			var tmp Float
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "string":
+			var tmp String
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "array":
+			var tmp Array
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "object":
+			var tmp Object
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		default:
+			return fmt.Errorf("unsupported type: %q", typ)
+		}
 	default:
-		actual = Object
-	}
-	if actual != n.Type {
-		return fmt.Errorf("%v is not %q", n.Value, n.Type)
+		return errors.New("node should be either scalar or mapping")
 	}
 	return nil
-}
-
-type Type string
-
-func (t *Type) UnmarshalYAML(value *yaml.Node) error {
-	var aux string
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	if _, found := types[Type(aux)]; !found {
-		return fmt.Errorf("unsupported type %q", aux)
-	}
-	*t = Type(aux)
-	return nil
-}
-
-const (
-	Bool    Type = "bool"
-	String  Type = "string"
-	Integer Type = "integer"
-	Array   Type = "array"
-	Object  Type = "object"
-	Enum    Type = "enum"
-)
-
-var types = map[Type]struct{}{
-	Bool:    {},
-	String:  {},
-	Integer: {},
-	Array:   {},
-	Object:  {},
-	Enum:    {},
 }

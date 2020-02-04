@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"gopkg.in/yaml.v3"
@@ -14,30 +15,32 @@ type Schema struct {
 
 func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	var aux struct {
-		Files []string        `yaml:"files"`
-		Root  map[string]Node `yaml:"root"`
+		Files []string `yaml:"files"`
+		Root  nodeMap  `yaml:"root"`
 	}
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
 	*s = Schema{
 		Files: aux.Files,
-		Root: Node{
-			Type:   Object,
-			Fields: aux.Root,
-		},
+		Root:  node{Node: &Object{Fields: aux.Root}},
 	}
 	return nil
 }
 
 func (s *Schema) Generate(w io.Writer, arrayLen int) error {
 	encoder := json.NewEncoder(w)
+	n := s.Root
 	if arrayLen >= 0 {
-		array := make([]interface{}, 0, arrayLen)
-		for i := 0; i < arrayLen; i++ {
-			array = append(array, s.Root.Generate())
+		n = &Array{
+			Min:      arrayLen,
+			Max:      arrayLen,
+			Elements: s.Root,
 		}
-		return encoder.Encode(array)
 	}
-	return json.NewEncoder(w).Encode(s.Root.Generate())
+	gen, err := n.Generate()
+	if err != nil {
+		return fmt.Errorf("generate: %w", err)
+	}
+	return encoder.Encode(gen)
 }
