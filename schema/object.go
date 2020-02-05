@@ -1,7 +1,9 @@
 package schema
 
 import (
+	"bufio"
 	"errors"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -22,14 +24,24 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (o Object) Generate() (interface{}, error) {
-	res := make(map[string]interface{}, len(o))
-	var err error
+func (o Object) Generate(w *bufio.Writer) error {
+	if err := w.WriteByte('{'); err != nil {
+		return err
+	}
+	var i int
 	for field, node := range o {
-		res[field], err = node.Generate()
-		if err != nil {
-			return nil, err
+		if i > 0 {
+			if err := w.WriteByte(','); err != nil {
+				return err
+			}
+		}
+		i++
+		if _, err := w.WriteString(strconv.Quote(field) + ":"); err != nil {
+			return err
+		}
+		if err := node.Generate(w); err != nil {
+			return err
 		}
 	}
-	return res, nil
+	return w.WriteByte('}')
 }

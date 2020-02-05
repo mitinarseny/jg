@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"math/rand"
 
@@ -23,6 +25,6 @@ func (e *Enum) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (e Enum) Generate() (interface{}, error) {
-	return e[rand.Intn(len(e))], nil
+func (e Enum) Generate(w *bufio.Writer) error {
+	return json.NewEncoder(w).Encode(e[rand.Intn(len(e))])
 }

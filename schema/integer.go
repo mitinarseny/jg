@@ -1,6 +1,11 @@
 package schema
 
-import "gopkg.in/yaml.v3"
+import (
+	"bufio"
+	"strconv"
+
+	"gopkg.in/yaml.v3"
+)
 
 type Integer struct {
 	Range IntRange
@@ -24,6 +29,7 @@ func (i *Integer) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (i *Integer) Generate() (interface{}, error) {
-	return i.Range.Rand(), nil
+func (i *Integer) Generate(w *bufio.Writer) error {
+	_, err := w.WriteString(strconv.FormatInt(i.Range.Rand(), 10))
+	return err
 }

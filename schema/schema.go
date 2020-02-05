@@ -1,8 +1,7 @@
 package schema
 
 import (
-	"encoding/json"
-	"fmt"
+	"bufio"
 	"io"
 	"math/rand"
 	"time"
@@ -31,7 +30,6 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 }
 
 func (s *Schema) Generate(w io.Writer, arrayLen int) error {
-	encoder := json.NewEncoder(w)
 	n := s.Root
 	if arrayLen >= 0 {
 		n = &Array{
@@ -43,9 +41,9 @@ func (s *Schema) Generate(w io.Writer, arrayLen int) error {
 		}
 	}
 	rand.Seed(time.Now().UnixNano())
-	gen, err := n.Generate()
-	if err != nil {
-		return fmt.Errorf("generate: %w", err)
+	bw := bufio.NewWriterSize(w, 1<<20)
+	if err := n.Generate(bw); err != nil {
+		return err
 	}
-	return encoder.Encode(gen)
+	return bw.Flush()
 }

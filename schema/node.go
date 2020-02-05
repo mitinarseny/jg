@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type Node interface {
-	Generate() (interface{}, error)
+	Generate(*bufio.Writer) error
 }
 
 // node is a helper type for unmarshal Node

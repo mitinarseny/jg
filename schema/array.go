@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"bufio"
 	"errors"
 
 	"gopkg.in/yaml.v3"
@@ -34,15 +35,21 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (a *Array) Generate() (interface{}, error) {
-	elNum := a.Length.Rand()
-	res := make([]interface{}, 0, elNum)
-	for i := 0; i < elNum; i++ {
-		gen, err := a.Elements.Generate()
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, gen)
+func (a *Array) Generate(w *bufio.Writer) error {
+	if err := w.WriteByte('['); err != nil {
+		return err
 	}
-	return res, nil
+	elNum := a.Length.Rand()
+	// res := make([]interface{}, 0, elNum)
+	for i := 0; i < elNum; i++ {
+		if i > 0 {
+			if err := w.WriteByte(','); err != nil {
+				return err
+			}
+		}
+		if err := a.Elements.Generate(w); err != nil {
+			return err
+		}
+	}
+	return w.WriteByte(']')
 }
