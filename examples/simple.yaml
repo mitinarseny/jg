@@ -22,7 +22,7 @@ root:
 
   arrayExplicit:
     type: array
-    range: [1, 100] # default: [0, 10]
+    length: 100 # default: [0, 10]
     elements: integer
 
   objectExplicit:

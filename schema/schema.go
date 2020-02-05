@@ -35,7 +35,7 @@ func (s *Schema) Generate(w io.Writer, arrayLen int) error {
 	n := s.Root
 	if arrayLen >= 0 {
 		n = &Array{
-			Range: IntRange{
+			Length: Length{
 				Min: arrayLen,
 				Max: arrayLen,
 			},

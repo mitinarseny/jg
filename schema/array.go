@@ -7,16 +7,16 @@ import (
 )
 
 type Array struct {
-	Range    IntRange
+	Length   Length
 	Elements Node
 }
 
 func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 	aux := struct {
-		Range    IntRange `yaml:"range"`
-		Elements *node    `yaml:"elements"`
+		Length   Length `yaml:"length"`
+		Elements *node  `yaml:"elements"`
 	}{
-		Range: IntRange{
+		Length: Length{
 			Min: 0,
 			Max: 10,
 		},
@@ -28,14 +28,14 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 		return errors.New("array must specify its elements")
 	}
 	*a = Array{
-		Range:    aux.Range,
+		Length:   aux.Length,
 		Elements: aux.Elements.Node,
 	}
 	return nil
 }
 
 func (a *Array) Generate() (interface{}, error) {
-	elNum := a.Range.Rand()
+	elNum := a.Length.Rand()
 	res := make([]interface{}, 0, elNum)
 	for i := 0; i < elNum; i++ {
 		gen, err := a.Elements.Generate()

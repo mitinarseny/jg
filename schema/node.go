@@ -98,7 +98,7 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 			return fmt.Errorf("unsupported type: %q", typ)
 		}
 	default:
-		return fmt.Errorf("node should be either scalar or mapping, not %s", value.Tag)
+		return fmt.Errorf("node should be either scalar or mapping, got: %s", value.Tag)
 	}
 	return nil
 }
