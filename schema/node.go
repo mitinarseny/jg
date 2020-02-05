@@ -76,9 +76,7 @@ func (a *Array) Generate() (interface{}, error) {
 	return res, nil
 }
 
-type Object struct {
-	Fields map[string]Node `yaml:"fields"`
-}
+type Object map[string]Node
 
 func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	var aux struct {
@@ -87,21 +85,38 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
-	*o = Object{Fields: aux.Fields}
+	*o = Object(aux.Fields)
 	return nil
 }
 
-func (o *Object) Generate() (interface{}, error) {
-	res := make(map[string]interface{}, len(o.Fields))
+func (o Object) Generate() (interface{}, error) {
+	res := make(map[string]interface{}, len(o))
 	var err error
-	for field, node := range o.Fields {
+	for field, node := range o {
 		res[field], err = node.Generate()
 		if err != nil {
 			return nil, err
 		}
 	}
 	return res, nil
-	// return nil, errors.New("not implemented yet")
+}
+
+type Enum []interface{}
+
+func (e *Enum) UnmarshalYAML(value *yaml.Node) error {
+	var aux struct {
+		Choices []interface{} `yaml:"choices"`
+	}
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	// TODO: check len of aux: 0 and 1 are meaningless
+	*e = aux.Choices
+	return nil
+}
+
+func (e Enum) Generate() (interface{}, error) {
+	return e[rand.Intn(len(e))], nil
 }
 
 type nodeMap map[string]Node
@@ -205,6 +220,12 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 			n.Node = &tmp
 		case "object":
 			var tmp Object
+			if err := value.Decode(&tmp); err != nil {
+				return err
+			}
+			n.Node = &tmp
+		case "enum":
+			var tmp Enum
 			if err := value.Decode(&tmp); err != nil {
 				return err
 			}

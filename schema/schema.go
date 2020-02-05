@@ -23,7 +23,7 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	}
 	*s = Schema{
 		Files: aux.Files,
-		Root:  node{Node: &Object{Fields: aux.Root}},
+		Root:  node{Node: Object(aux.Root)},
 	}
 	return nil
 }
