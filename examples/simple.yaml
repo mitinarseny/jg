@@ -17,7 +17,7 @@ root:
     range: [0, 1]
 
   stringExplicit:
-    type: string # type is optional, only strings can be read from file
+    type: string
     from: file1
 
   arrayExplicit:
@@ -33,6 +33,6 @@ root:
   enumExplicit:
     type: enum # required
     choices:
-      - 1
-      - 2
-      - 3
+      - first
+      - second
+      - third

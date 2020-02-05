@@ -3,7 +3,6 @@ package schema
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,187 +11,7 @@ type Node interface {
 	Generate() (interface{}, error)
 }
 
-type Bool struct{}
-
-func (b *Bool) Generate() (interface{}, error) {
-	return rand.Float64() < 0.5, nil
-}
-
-type Integer struct {
-	Range IntRange
-}
-
-func (i *Integer) UnmarshalYAML(value *yaml.Node) error {
-	aux := struct {
-		Range IntRange `yaml:"range"`
-	}{
-		Range: IntRange{
-			Min: 0,
-			Max: 100,
-		},
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	*i = Integer{
-		Range: aux.Range,
-	}
-	return nil
-}
-
-func (i *Integer) Generate() (interface{}, error) {
-	return i.Range.Rand(), nil
-}
-
-type Float struct {
-	Range FloatRange
-}
-
-func (f *Float) UnmarshalYAML(value *yaml.Node) error {
-	aux := struct {
-		Range FloatRange `yaml:"range"`
-	}{
-		Range: FloatRange{
-			Min: 0,
-			Max: 1,
-		},
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	*f = Float{
-		Range: aux.Range,
-	}
-	return nil
-}
-
-func (f *Float) Generate() (interface{}, error) {
-	return f.Range.Rand(), nil
-}
-
-type String struct {
-}
-
-func (s *String) Generate() (interface{}, error) {
-	return "example", nil
-}
-
-type Array struct {
-	Range    IntRange
-	Elements Node
-}
-
-func (a *Array) UnmarshalYAML(value *yaml.Node) error {
-	aux := struct {
-		Range    IntRange `yaml:"range"`
-		Elements *node     `yaml:"elements"`
-	}{
-		Range:    IntRange{
-			Min: 0,
-			Max: 10,
-		},
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	if aux.Elements == nil {
-		return errors.New("array must specify its elements")
-	}
-	*a = Array{
-		Range:    aux.Range,
-		Elements: aux.Elements.Node,
-	}
-	return nil
-}
-
-func (a *Array) Generate() (interface{}, error) {
-	elNum := a.Range.Rand()
-	res := make([]interface{}, 0, elNum)
-	for i := 0; i < elNum; i++ {
-		gen, err := a.Elements.Generate()
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, gen)
-	}
-	return res, nil
-}
-
-type Object map[string]Node
-
-func (o *Object) UnmarshalYAML(value *yaml.Node) error {
-	var aux struct {
-		Fields nodeMap `yaml:"fields"`
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	if aux.Fields == nil {
-		return errors.New("object must specify its fields")
-	}
-	*o = Object(aux.Fields)
-	return nil
-}
-
-func (o Object) Generate() (interface{}, error) {
-	res := make(map[string]interface{}, len(o))
-	var err error
-	for field, node := range o {
-		res[field], err = node.Generate()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-type Enum []interface{}
-
-func (e *Enum) UnmarshalYAML(value *yaml.Node) error {
-	var aux struct {
-		Choices []interface{} `yaml:"choices"`
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	// TODO: check len of aux: 0 and 1 are meaningless
-	*e = aux.Choices
-	return nil
-}
-
-func (e Enum) Generate() (interface{}, error) {
-	return e[rand.Intn(len(e))], nil
-}
-
-type nodeMap map[string]Node
-
-func (n *nodeMap) UnmarshalYAML(value *yaml.Node) error {
-	var aux map[string]node
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	*n = make(nodeMap, len(aux))
-	for k, v := range aux {
-		(*n)[k] = v.Node
-	}
-	return nil
-}
-
-type nodeSlice []Node
-
-func (n *nodeSlice) UnmarshalYAML(value *yaml.Node) error {
-	var aux []node
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	*n = make(nodeSlice, 0, len(aux))
-	for _, v := range aux {
-		*n = append(*n, v)
-	}
-	return nil
-}
-
-// node is a helper struct for unmarshal
+// node is a helper type for unmarshal Node
 type node struct {
 	Node
 }
@@ -238,11 +57,7 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 		}
 		switch typ := *aux.Type; typ {
 		case "bool":
-			var tmp Bool
-			if err := value.Decode(&tmp); err != nil {
-				return err
-			}
-			n.Node = &tmp
+			n.Node = &Bool{}
 		case "integer":
 			var tmp Integer
 			if err := value.Decode(&tmp); err != nil {
@@ -283,7 +98,25 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 			return fmt.Errorf("unsupported type: %q", typ)
 		}
 	default:
-		return errors.New("node should be either scalar or mapping")
+		return fmt.Errorf("node should be either scalar or mapping, not %s", value.Tag)
+	}
+	return nil
+}
+
+// nodeSlice is a helper type for unmarshal map[string]Node
+type nodeMap map[string]Node
+
+func (n *nodeMap) UnmarshalYAML(value *yaml.Node) error {
+	var aux map[string]*node
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*n = make(nodeMap, len(aux))
+	for k, v := range aux {
+		if v == nil {
+			return errors.New("empty node")
+		}
+		(*n)[k] = v.Node
 	}
 	return nil
 }
