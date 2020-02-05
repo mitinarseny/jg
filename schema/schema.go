@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -33,11 +35,14 @@ func (s *Schema) Generate(w io.Writer, arrayLen int) error {
 	n := s.Root
 	if arrayLen >= 0 {
 		n = &Array{
-			Min:      arrayLen,
-			Max:      arrayLen,
+			Range: IntRange{
+				Min: arrayLen,
+				Max: arrayLen,
+			},
 			Elements: s.Root,
 		}
 	}
+	rand.Seed(time.Now().UnixNano())
 	gen, err := n.Generate()
 	if err != nil {
 		return fmt.Errorf("generate: %w", err)

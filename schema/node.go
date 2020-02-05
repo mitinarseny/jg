@@ -19,19 +19,55 @@ func (b *Bool) Generate() (interface{}, error) {
 }
 
 type Integer struct {
-	Min, Max int
+	Range IntRange
+}
+
+func (i *Integer) UnmarshalYAML(value *yaml.Node) error {
+	aux := struct {
+		Range IntRange `yaml:"range"`
+	}{
+		Range: IntRange{
+			Min: 0,
+			Max: 100,
+		},
+	}
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*i = Integer{
+		Range: aux.Range,
+	}
+	return nil
 }
 
 func (i *Integer) Generate() (interface{}, error) {
-	return rand.Int63(), nil
+	return i.Range.Rand(), nil
 }
 
 type Float struct {
-	Min, Max float64
+	Range FloatRange
+}
+
+func (f *Float) UnmarshalYAML(value *yaml.Node) error {
+	aux := struct {
+		Range FloatRange `yaml:"range"`
+	}{
+		Range: FloatRange{
+			Min: 0,
+			Max: 1,
+		},
+	}
+	if err := value.Decode(&aux); err != nil {
+		return err
+	}
+	*f = Float{
+		Range: aux.Range,
+	}
+	return nil
 }
 
 func (f *Float) Generate() (interface{}, error) {
-	return rand.Float64(), nil
+	return f.Range.Rand(), nil
 }
 
 type String struct {
@@ -42,31 +78,37 @@ func (s *String) Generate() (interface{}, error) {
 }
 
 type Array struct {
-	Min, Max int
+	Range    IntRange
 	Elements Node
 }
 
 func (a *Array) UnmarshalYAML(value *yaml.Node) error {
-	var aux struct {
-		Min      int  `yaml:"min"`
-		Max      int  `yaml:"max"`
-		Elements node `yaml:"elements"`
+	aux := struct {
+		Range    IntRange `yaml:"range"`
+		Elements *node     `yaml:"elements"`
+	}{
+		Range:    IntRange{
+			Min: 0,
+			Max: 10,
+		},
 	}
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
+	if aux.Elements == nil {
+		return errors.New("array must specify its elements")
+	}
 	*a = Array{
-		Min:      aux.Min,
-		Max:      aux.Max,
+		Range:    aux.Range,
 		Elements: aux.Elements.Node,
 	}
 	return nil
 }
 
 func (a *Array) Generate() (interface{}, error) {
-	elNum := int64(a.Min) + rand.Int63n(int64(a.Max-a.Min+1))
+	elNum := a.Range.Rand()
 	res := make([]interface{}, 0, elNum)
-	for i := int64(0); i < elNum; i++ {
+	for i := 0; i < elNum; i++ {
 		gen, err := a.Elements.Generate()
 		if err != nil {
 			return nil, err
@@ -84,6 +126,9 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	}
 	if err := value.Decode(&aux); err != nil {
 		return err
+	}
+	if aux.Fields == nil {
+		return errors.New("object must specify its fields")
 	}
 	*o = Object(aux.Fields)
 	return nil
@@ -164,13 +209,17 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 			n.Node = &Bool{}
 		case "integer":
 			n.Node = &Integer{
-				Min: 0,
-				Max: 100,
+				Range: IntRange{
+					Min: 0,
+					Max: 100,
+				},
 			}
 		case "float":
 			n.Node = &Float{
-				Min: 0,
-				Max: 1,
+				Range: FloatRange{
+					Min: 0,
+					Max: 1,
+				},
 			}
 		case "array", "object", "enum":
 			return fmt.Errorf("unable to unmarshal inline %q", typ)
