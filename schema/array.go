@@ -1,8 +1,9 @@
 package schema
 
 import (
-	"bufio"
 	"errors"
+	"io"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -35,21 +36,47 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (a *Array) Generate(w *bufio.Writer) error {
-	if err := w.WriteByte('['); err != nil {
+func (a *Array) GenerateJSON(ctx *Context, w io.Writer) error {
+	if _, err := w.Write([]byte{'['}); err != nil {
 		return err
 	}
 	elNum := a.Length.Rand()
-	// res := make([]interface{}, 0, elNum)
 	for i := 0; i < elNum; i++ {
 		if i > 0 {
-			if err := w.WriteByte(','); err != nil {
+			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
-		if err := a.Elements.Generate(w); err != nil {
-			return err
+		if err := a.Elements.GenerateJSON(ctx, w); err != nil {
+			return a.wrapErr(i, err)
 		}
 	}
-	return w.WriteByte(']')
+	_, err := w.Write([]byte{']'})
+	return err
+}
+
+func (a *Array) Walk(fn WalkFn) error {
+	var errs Errors
+	proceed, err := fn(a.Elements)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	if !proceed {
+		return errs.CheckLen()
+	}
+	walker, ok := a.Elements.(Walker)
+	if !ok {
+		return errs.CheckLen()
+	}
+	if err := walker.Walk(fn); err != nil {
+		errs = append(errs, a.wrapErr(-1, err))
+	}
+	return errs.CheckLen()
+}
+
+func (a *Array) wrapErr(ind int, err error) error {
+	if ind < 0 {
+		return WrapErr("[]", err)
+	}
+	return WrapErr("["+strconv.Itoa(ind)+"]", err)
 }

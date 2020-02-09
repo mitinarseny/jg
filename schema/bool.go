@@ -1,22 +1,22 @@
 package schema
 
 import (
-	"bufio"
+	"io"
 	"math/rand"
 )
 
 type Bool struct{}
 
-const (
-	trueJSON  = "true"
-	falseJSON = "false"
+var (
+	trueJSON  = []byte("true")
+	falseJSON = []byte("false")
 )
 
-func (b *Bool) Generate(w *bufio.Writer) error {
+func (b *Bool) GenerateJSON(_ *Context, w io.Writer) error {
 	v := falseJSON
 	if rand.Float64() < 0.5 {
 		v = trueJSON
 	}
-	_, err := w.WriteString(v)
+	_, err := w.Write(v)
 	return err
 }

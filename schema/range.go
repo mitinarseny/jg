@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -17,6 +19,48 @@ func (l Length) Rand() int {
 		return l.Min
 	}
 	return l.Min + rand.Intn(l.Max-l.Min+1)
+}
+
+func (l *Length) Set(s string) error {
+	var (
+		min, max int
+		err      error
+	)
+	switch ss := strings.Split(s, ","); len(ss) {
+	case 1:
+		min, err = strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+		}
+		max = min
+	case 2:
+		min, err = strconv.Atoi(ss[0])
+		if err != nil {
+			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+		}
+		max, err = strconv.Atoi(ss[1])
+		if err != nil {
+			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+		}
+	default:
+		return fmt.Errorf("length should be int[,int]")
+	}
+	*l = Length{
+		Min: min,
+		Max: max,
+	}
+	return l.checkValid()
+}
+
+func (l *Length) Type() string {
+	return "int[,int]"
+}
+
+func (l *Length) String() string {
+	if l.Min == l.Max {
+		return strconv.Itoa(l.Max)
+	}
+	return fmt.Sprintf("%d-%d", l.Min, l.Max)
 }
 
 func (l *Length) UnmarshalYAML(value *yaml.Node) error {
@@ -50,8 +94,15 @@ func (l *Length) UnmarshalYAML(value *yaml.Node) error {
 	default:
 		return fmt.Errorf("length should be scalar, sequence or mapping, got: %s", value.Tag)
 	}
+	return l.checkValid()
+}
+
+func (l *Length) checkValid() error {
 	if l.Min > l.Max {
 		return errors.New("min should be less than or equal to max")
+	}
+	if l.Min < 0 || l.Max < 0 {
+		return errors.New("length should be equal to or greater than zero")
 	}
 	return nil
 }

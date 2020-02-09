@@ -1,8 +1,8 @@
 package schema
 
 import (
-	"bufio"
 	"errors"
+	"io"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
@@ -24,24 +24,53 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (o Object) Generate(w *bufio.Writer) error {
-	if err := w.WriteByte('{'); err != nil {
+func (o Object) GenerateJSON(ctx *Context, w io.Writer) error {
+	if ctx.SortKeys() {
+		// TODO: sort keys
+	}
+	if _, err := w.Write([]byte{'{'}); err != nil {
 		return err
 	}
-	var i int
+	var wasFirst bool
 	for field, node := range o {
-		if i > 0 {
-			if err := w.WriteByte(','); err != nil {
+		if wasFirst {
+			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
-		i++
-		if _, err := w.WriteString(strconv.Quote(field) + ":"); err != nil {
+		wasFirst = true
+		if _, err := w.Write([]byte(strconv.Quote(field) + ":")); err != nil {
 			return err
 		}
-		if err := node.Generate(w); err != nil {
-			return err
+		if err := node.GenerateJSON(ctx, w); err != nil {
+			return o.wrapErr(field, err)
 		}
 	}
-	return w.WriteByte('}')
+	_, err := w.Write([]byte{'}'})
+	return err
+}
+
+func (o Object) Walk(fn WalkFn) error {
+	var errs Errors
+	for k, n := range o {
+		proceed, err := fn(n)
+		if err != nil {
+			errs = append(errs, o.wrapErr(k, err))
+		}
+		if !proceed {
+			continue
+		}
+		walker, ok := n.(Walker)
+		if !ok {
+			continue
+		}
+		if err := walker.Walk(fn); err != nil {
+			errs = append(errs, o.wrapErr(k, err))
+		}
+	}
+	return errs.CheckLen()
+}
+
+func (o Object) wrapErr(field string, err error) error {
+	return WrapErr("."+field, err)
 }

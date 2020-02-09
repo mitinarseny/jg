@@ -1,5 +1,5 @@
-#files:
-#  file1:
+files:
+  file1:
 
 root:
   boolInline: bool

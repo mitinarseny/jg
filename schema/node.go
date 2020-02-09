@@ -1,15 +1,22 @@
 package schema
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
+	"io"
 
 	"gopkg.in/yaml.v3"
 )
 
+type WalkFn func(Node) (bool, error)
+
 type Node interface {
-	Generate(*bufio.Writer) error
+	GenerateJSON(*Context, io.Writer) error
+
+}
+
+type Walker interface {
+	Walk(fn WalkFn) error
 }
 
 // node is a helper type for unmarshal Node

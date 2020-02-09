@@ -1,35 +1,30 @@
 package schema
 
 import (
-	"bufio"
+	"io"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Float struct {
-	Range FloatRange
+	Range FloatRange `yaml:"float"`
 }
 
 func (f *Float) UnmarshalYAML(value *yaml.Node) error {
-	aux := struct {
-		Range FloatRange `yaml:"range"`
-	}{
-		Range: FloatRange{
-			Min: 0,
-			Max: 1,
-		},
-	}
+	type raw Float
+	aux := raw(Float{Range: FloatRange{
+		Min: 0,
+		Max: 1,
+	}})
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
-	*f = Float{
-		Range: aux.Range,
-	}
+	*f = Float(aux)
 	return nil
 }
 
-func (f *Float) Generate(w *bufio.Writer) error {
-	_, err := w.WriteString(strconv.FormatFloat(f.Range.Rand(), 'f', -1, 64))
+func (f *Float) GenerateJSON(_ *Context, w io.Writer) error {
+	_, err := w.Write([]byte(strconv.FormatFloat(f.Range.Rand(), 'f', -1, 64)))
 	return err
 }
