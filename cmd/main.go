@@ -42,20 +42,30 @@ func main() {
 }
 
 func run() error {
-	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
 	fs.SortFlags = false
 
 	schemaPath := fs.StringP(schemaFlag, schemaFlagShorthand, "", schemaUsage)
-	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, false, noSortKeysUsage)
 	var arrayLen schema.Length
 	fs.VarP(&arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
+	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, false, noSortKeysUsage)
 
 	fs.ParseErrorsWhitelist.UnknownFlags = true // this is the reason why not standard flag package
-	_ = fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			return nil
+		}
+		return err
+	}
 
 	if flag.NArg() > 0 {
 		return fmt.Errorf("no additional args expected, got: %s", flag.Args())
 	}
+	if *schemaPath == "" {
+		return fmt.Errorf("no schema provided")
+	}
+
 	f, err := os.Open(*schemaPath)
 	if err != nil {
 		return fmt.Errorf("unable to open schema %q: %w", schemaPath, err)
@@ -76,7 +86,9 @@ func run() error {
 
 	fs.AddFlagSet(filesFS)
 	fs.ParseErrorsWhitelist.UnknownFlags = true // now we have defined all flags
-	_ = fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		return err
+	}
 
 	ctx := schema.NewContext()
 	ctx.SetSortKeys(!*noSortKeys)
@@ -102,7 +114,7 @@ func run() error {
 }
 
 func makeFileFlags(sch *schema.Schema) (map[string]*schema.File, *flag.FlagSet) {
-	fs := flag.NewFlagSet("", flag.ExitOnError)
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	files := make(map[string]*schema.File, len(sch.Files))
 	for name := range sch.Files {
 		var f schema.File
