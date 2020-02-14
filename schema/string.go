@@ -1,28 +1,37 @@
 package schema
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"strconv"
+
+	"gopkg.in/yaml.v3"
 )
 
 type String struct {
 	From string `yaml:"from"`
 }
 
-func (s *String) GenerateJSON(ctx *Context, w io.Writer) error {
-	f := ctx.File(s.From)
-	if f == nil {
-		return fmt.Errorf("unknown file %q", s.From)
+func (s *String) UnmarshalYAML(value *yaml.Node) error {
+	type rawString String
+	var tmp rawString
+	if err := value.Decode(&tmp); err != nil {
+		return err
 	}
-	if !f.Scanned {
-		if err := f.Scan(); err != nil {
-			return fmt.Errorf("unable to scan %q: %w", f.Path, err)
+	if tmp.From == "" {
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("from: required"),
 		}
 	}
-	ss, err := f.Rand()
+	*s = String(tmp)
+	return nil
+}
+
+func (s *String) GenerateJSON(ctx *Context, w io.Writer) error {
+	ss, err := ctx.Rand(s.From)
 	if err != nil {
-		return fmt.Errorf("unable to generate from file: %w", err)
+		return err
 	}
 	_, err = w.Write([]byte(strconv.Quote(ss))) // TODO: avoid copying []byte to string
 	return err

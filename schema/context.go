@@ -1,5 +1,9 @@
 package schema
 
+import (
+	"fmt"
+)
+
 type Context struct {
 	sortKeys bool
 	files    map[string]*File
@@ -24,6 +28,27 @@ func (c *Context) AddFile(name string, file *File) error {
 	return nil
 }
 
-func (c *Context) File(name string) *File {
-	return c.files[name]
+func (c *Context) Rand(name string) (string, error) {
+	f, ok := c.files[name]
+	if !ok {
+		return "", fmt.Errorf("unknown file %q", name)
+	}
+	if !f.Scanned() {
+		if err := f.Scan(); err != nil {
+			return "", fmt.Errorf("unable to scan: %w", err)
+		}
+	}
+	return f.Rand()
+}
+
+func (c *Context) Close() error {
+	var errs Errors
+	for _, f := range c.files {
+		if f.Scanned() {
+			if err := f.Close(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errs.CheckLen()
 }

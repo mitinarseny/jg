@@ -27,7 +27,10 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 		return err
 	}
 	if aux.Elements == nil {
-		return errors.New("array must specify its elements")
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("elements: required"),
+		}
 	}
 	*a = Array{
 		Length:   aux.Length,
@@ -41,14 +44,14 @@ func (a *Array) GenerateJSON(ctx *Context, w io.Writer) error {
 		return err
 	}
 	elNum := a.Length.Rand()
-	for i := 0; i < elNum; i++ {
+	for i := uint64(0); i < elNum; i++ {
 		if i > 0 {
 			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
 		if err := a.Elements.GenerateJSON(ctx, w); err != nil {
-			return a.wrapErr(i, err)
+			return a.wrapIndexErr(i, err)
 		}
 	}
 	_, err := w.Write([]byte{']'})
@@ -69,14 +72,15 @@ func (a *Array) Walk(fn WalkFn) error {
 		return errs.CheckLen()
 	}
 	if err := walker.Walk(fn); err != nil {
-		errs = append(errs, a.wrapErr(-1, err))
+		errs = append(errs, a.wrapErr(err))
 	}
 	return errs.CheckLen()
 }
 
-func (a *Array) wrapErr(ind int, err error) error {
-	if ind < 0 {
-		return WrapErr("[]", err)
-	}
-	return WrapErr("["+strconv.Itoa(ind)+"]", err)
+func (a *Array) wrapErr(err error) error {
+	return WrapErr("[]", err)
+}
+
+func (a *Array) wrapIndexErr(ind uint64, err error) error {
+	return WrapErr("["+strconv.FormatUint(ind, 10)+"]", err)
 }

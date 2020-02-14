@@ -19,6 +19,10 @@ const (
 	arrayFlag          = "array"
 	arrayUsage         = "Make array of root objects"
 
+	filesFlagShorthand = "f"
+	filesFlag          = "files"
+	filesUsage         = "Bind files"
+
 	noSortKeysFlagShorthand = "n"
 	noSortKeysFlag          = "nosort"
 	noSortKeysUsage         = "Do not sort keys in objects"
@@ -44,14 +48,13 @@ func main() {
 func run() error {
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	fs.SortFlags = false
 
 	schemaPath := fs.StringP(schemaFlag, schemaFlagShorthand, "", schemaUsage)
+	files := fs.StringToStringP(filesFlag, filesFlagShorthand, map[string]string{}, filesUsage)
+	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, false, noSortKeysUsage)
 	var arrayLen schema.Length
 	fs.VarP(&arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
-	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, false, noSortKeysUsage)
 
-	fs.ParseErrorsWhitelist.UnknownFlags = true // this is the reason why not standard flag package
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
 			return nil
@@ -82,23 +85,17 @@ func run() error {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 
-	files, filesFS := makeFileFlags(&sch)
-
-	fs.AddFlagSet(filesFS)
-	fs.ParseErrorsWhitelist.UnknownFlags = true // now we have defined all flags
-	if err := fs.Parse(os.Args[1:]); err != nil {
-		return err
-	}
-
 	ctx := schema.NewContext()
+	defer ctx.Close()
 	ctx.SetSortKeys(!*noSortKeys)
 
-	for name, file := range files {
-		if file.Path == "" {
-			return fmt.Errorf("file %q not provided", name)
+	for name := range sch.Files {
+		file, found := (*files)[name]
+		if !found {
+			return fmt.Errorf("file %q is not provided", name)
 		}
-		if err := ctx.AddFile(name, file); err != nil {
-			return fmt.Errorf("unable to add files %q: %w", name, err)
+		if err := ctx.AddFile(name, &schema.File{Path: file}); err != nil {
+			return fmt.Errorf("unable to add file %q: %w", name, err)
 		}
 	}
 
@@ -111,15 +108,4 @@ func run() error {
 	}
 
 	return nil
-}
-
-func makeFileFlags(sch *schema.Schema) (map[string]*schema.File, *flag.FlagSet) {
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	files := make(map[string]*schema.File, len(sch.Files))
-	for name := range sch.Files {
-		var f schema.File
-		fs.VarP(&f, fileFlagPrefix+name, "", fmt.Sprintf("Data for %q", name))
-		files[name] = &f
-	}
-	return files, fs
 }

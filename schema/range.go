@@ -11,34 +11,34 @@ import (
 )
 
 type Length struct {
-	Min, Max int
+	Min, Max uint64
 }
 
-func (l Length) Rand() int {
+func (l Length) Rand() uint64 {
 	if l.Min == l.Max {
 		return l.Min
 	}
-	return l.Min + rand.Intn(l.Max-l.Min+1)
+	return l.Min + rand.Uint64()%(l.Max-l.Min+1)
 }
 
 func (l *Length) Set(s string) error {
 	var (
-		min, max int
+		min, max uint64
 		err      error
 	)
 	switch ss := strings.Split(s, ","); len(ss) {
 	case 1:
-		min, err = strconv.Atoi(s)
+		min, err = strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
 		max = min
 	case 2:
-		min, err = strconv.Atoi(ss[0])
+		min, err = strconv.ParseUint(ss[0], 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
-		max, err = strconv.Atoi(ss[1])
+		max, err = strconv.ParseUint(ss[1], 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
@@ -49,18 +49,18 @@ func (l *Length) Set(s string) error {
 		Min: min,
 		Max: max,
 	}
-	return l.checkValid()
+	return l.validate()
 }
 
 func (l *Length) Type() string {
-	return "int[,int]"
+	return "uint64[,uint64]"
 }
 
 func (l *Length) String() string {
 	if l.Min == l.Max {
-		return strconv.Itoa(l.Max)
+		return strconv.FormatUint(l.Max, 10)
 	}
-	return fmt.Sprintf("%d-%d", l.Min, l.Max)
+	return fmt.Sprintf("%d,%d", l.Min, l.Max)
 }
 
 func (l *Length) UnmarshalYAML(value *yaml.Node) error {
@@ -72,15 +72,15 @@ func (l *Length) UnmarshalYAML(value *yaml.Node) error {
 		l.Min = l.Max
 		return nil
 	case yaml.SequenceNode:
-		var aux [2]int
+		var aux [2]uint64
 		if err := value.Decode(&aux); err != nil {
 			return err
 		}
 		l.Min, l.Max = aux[0], aux[1]
 	case yaml.MappingNode:
 		var aux struct {
-			Min *int `yaml:"min"`
-			Max *int `yaml:"max"`
+			Min *uint64 `yaml:"min"`
+			Max *uint64 `yaml:"max"`
 		}
 		if err := value.Decode(&aux); err != nil {
 			return err
@@ -92,12 +92,21 @@ func (l *Length) UnmarshalYAML(value *yaml.Node) error {
 			l.Max = *aux.Max
 		}
 	default:
-		return fmt.Errorf("length should be scalar, sequence or mapping, got: %s", value.Tag)
+		return &yamlError{
+			line: value.Line,
+			err:  fmt.Errorf("length should be scalar, sequence or mapping, got: %s", value.Tag),
+		}
 	}
-	return l.checkValid()
+	if err := l.validate(); err != nil {
+		return &yamlError{
+			line: value.Line,
+			err:  err,
+		}
+	}
+	return nil
 }
 
-func (l *Length) checkValid() error {
+func (l *Length) validate() error {
 	if l.Min > l.Max {
 		return errors.New("min should be less than or equal to max")
 	}
@@ -138,10 +147,16 @@ func (r *IntRange) UnmarshalYAML(value *yaml.Node) error {
 			r.Max = *aux.Max
 		}
 	default:
-		return fmt.Errorf("range should be either sequence or mapping, got: %s", value.Tag)
+		return &yamlError{
+			line: value.Line,
+			err:  fmt.Errorf("range should be either sequence or mapping, got: %s", value.Tag),
+		}
 	}
 	if r.Min >= r.Max {
-		return errors.New("min should be less than max")
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("min should be less than max"),
+		}
 	}
 	return nil
 }
@@ -180,10 +195,16 @@ func (r *FloatRange) UnmarshalYAML(value *yaml.Node) error {
 			r.Max = *aux.Max
 		}
 	default:
-		return fmt.Errorf("range should be either sequence or mapping, got: %s", value.Tag)
+		return &yamlError{
+			line: value.Line,
+			err:  fmt.Errorf("range should be either sequence or mapping, got: %s", value.Tag),
+		}
 	}
 	if r.Min >= r.Max {
-		return errors.New("min should be less than max")
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("min should be less than max"),
+		}
 	}
 	return nil
 }

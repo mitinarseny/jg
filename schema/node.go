@@ -12,7 +12,6 @@ type WalkFn func(Node) (bool, error)
 
 type Node interface {
 	GenerateJSON(*Context, io.Writer) error
-
 }
 
 type Walker interface {
@@ -65,7 +64,7 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 		}
 		switch typ := *aux.Type; typ {
 		case "bool":
-			n.Node = &Bool{}
+			n.Node = Bool{}
 		case "integer":
 			var tmp Integer
 			if err := value.Decode(&tmp); err != nil {
@@ -103,10 +102,16 @@ func (n *node) UnmarshalYAML(value *yaml.Node) error {
 			}
 			n.Node = &tmp
 		default:
-			return fmt.Errorf("unsupported type: %q", typ)
+			return &yamlError{
+				line: value.Line,
+				err:  fmt.Errorf("unsupported type: %q", typ),
+			}
 		}
 	default:
-		return fmt.Errorf("node should be either scalar or mapping, got: %s", value.Tag)
+		return &yamlError{
+			line: value.Line,
+			err:  fmt.Errorf("node should be either scalar or mapping, got: %s", value.Tag),
+		}
 	}
 	return nil
 }
@@ -122,7 +127,10 @@ func (n *nodeMap) UnmarshalYAML(value *yaml.Node) error {
 	*n = make(nodeMap, len(aux))
 	for k, v := range aux {
 		if v == nil {
-			return errors.New("empty node")
+			return &yamlError{
+				line: value.Line,
+				err:  errors.New("empty node"),
+			}
 		}
 		(*n)[k] = v.Node
 	}

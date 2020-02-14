@@ -53,3 +53,12 @@ func (e Errors) CheckLen() error {
 		return e
 	}
 }
+
+type yamlError struct {
+	line int
+	err error
+}
+
+func (e *yamlError) Error() string {
+	return fmt.Sprintf("line %d: %s", e.line, e.err)
+}

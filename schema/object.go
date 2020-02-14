@@ -18,7 +18,10 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 		return err
 	}
 	if aux.Fields == nil {
-		return errors.New("object must specify its fields")
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("fields: required"),
+		}
 	}
 	*o = Object(aux.Fields)
 	return nil

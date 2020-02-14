@@ -13,10 +13,10 @@ type Integer struct {
 
 func (i *Integer) UnmarshalYAML(value *yaml.Node) error {
 	type raw Integer
-	aux := raw(Integer{Range:IntRange{
-			Min: 0,
-			Max: 100,
-		}})
+	aux := raw(Integer{Range: IntRange{
+		Min: 0,
+		Max: 100,
+	}})
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
