@@ -6,12 +6,12 @@ import (
 
 type Context struct {
 	sortKeys bool
-	files    map[string]*File
+	files    map[string]*file
 }
 
 func NewContext() *Context {
 	return &Context{
-		files: make(map[string]*File),
+		files: make(map[string]*file),
 	}
 }
 
@@ -23,8 +23,12 @@ func (c *Context) SortKeys() bool {
 	return c.sortKeys
 }
 
-func (c *Context) AddFile(name string, file *File) error {
-	c.files[name] = file
+func (c *Context) AddFile(name string, file string) error {
+	f, err := ScanFile(file)
+	if err != nil {
+		return err
+	}
+	c.files[name] = f
 	return nil
 }
 
@@ -33,21 +37,14 @@ func (c *Context) Rand(name string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("unknown file %q", name)
 	}
-	if !f.Scanned() {
-		if err := f.Scan(); err != nil {
-			return "", fmt.Errorf("unable to scan: %w", err)
-		}
-	}
 	return f.Rand()
 }
 
 func (c *Context) Close() error {
 	var errs Errors
 	for _, f := range c.files {
-		if f.Scanned() {
-			if err := f.Close(); err != nil {
-				errs = append(errs, err)
-			}
+		if err := f.Close(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	return errs.CheckLen()

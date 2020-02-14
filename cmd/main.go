@@ -94,7 +94,7 @@ func run() error {
 		if !found {
 			return fmt.Errorf("file %q is not provided", name)
 		}
-		if err := ctx.AddFile(name, &schema.File{Path: file}); err != nil {
+		if err := ctx.AddFile(name, file); err != nil {
 			return fmt.Errorf("unable to add file %q: %w", name, err)
 		}
 	}

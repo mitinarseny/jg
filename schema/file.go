@@ -143,7 +143,7 @@ func (s *fallbackSource) Close() error {
 
 type index []int64
 
-func newIndexer(size int) index {
+func newIndexer(size uint64) index {
 	return make(index, 0, size)
 }
 
@@ -161,7 +161,7 @@ type indexedReaderAt struct {
 	io.ReaderAt
 }
 
-func newIndexedReaderAt(r io.ReaderAt, size int) *indexedReaderAt {
+func newIndexedReaderAt(r io.ReaderAt, size uint64) *indexedReaderAt {
 	return &indexedReaderAt{
 		index:    newIndexer(size),
 		ReaderAt: r,
@@ -187,7 +187,7 @@ type indexedCopyReaderAt struct {
 func newIndexedCopyReaderAt(f interface {
 	io.Writer
 	io.ReaderAt
-}, size int) *indexedCopyReaderAt {
+}, size uint64) *indexedCopyReaderAt {
 	return &indexedCopyReaderAt{
 		indexedReaderAt: newIndexedReaderAt(f, size),
 		w:               f,
@@ -205,88 +205,73 @@ func (f *indexedCopyReaderAt) WriteLine(line []byte) error {
 	return f.index.WriteLine(line)
 }
 
-type File struct {
-	from *os.File
-	tmp  *os.File
+type file struct {
+	f *os.File
 	LineWriter
-	Path     string
-	scanned  bool
-	seekable bool
 }
 
-func (f *File) Set(name string) (err error) {
-	f.Path = name
-	info, err := os.Stat(name)
+func ScanFile(name string) (f *file, err error) {
+	f = new(file)
+	from, err := os.Open(name)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.seekable = info.Mode().IsRegular()
-	return nil
-}
 
-func (f *File) Type() string {
-	return "string"
-}
-
-func (f *File) String() string {
-	return f.Path
-}
-
-func (f *File) Scanned() bool {
-	return f.scanned
-}
-
-func (f *File) Scan() (err error) {
-	f.from, err = os.Open(f.Path)
+	info, err := from.Stat()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.scanned = true
 
-	// TODO: do not create buffer if file size is greater than 1024
-	b := newBufferedLineSource(1) // TODO: parametrize size
-	fbs := &fallbackSource{Main: b}
-
-	if f.seekable {
-		fbs.FallbackFn = func() (LineWriter, error) {
-			return newIndexedReaderAt(f.from, len(b.lines)), nil
-		}
+	if info.Mode().IsRegular() && info.Size() > 1024 {
+		f.f = from
+		f.LineWriter = newIndexedReaderAt(f.f, uint64(info.Size()))
 	} else {
-		fbs.FallbackFn = func() (LineWriter, error) {
-			tmp, err := ioutil.TempFile("", path.Base(f.from.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("unable to create temporary file: %w", err)
+		b := newBufferedLineSource(1024) // TODO: parametrize size?
+		fbs := &fallbackSource{Main: b}
+		if info.Mode().IsRegular() {
+			fbs.FallbackFn = func() (LineWriter, error) {
+				f.f = from
+				return newIndexedReaderAt(f.f, uint64(len(b.lines))), nil
 			}
-			f.tmp = tmp
-			return newIndexedCopyReaderAt(tmp, len(b.lines)), nil
+		} else {
+			fbs.FallbackFn = func() (LineWriter, error) {
+				tmp, err := ioutil.TempFile("", path.Base(from.Name()))
+				if err != nil {
+					return nil, fmt.Errorf("unable to create temporary file: %w", err)
+				}
+				f.f = tmp
+				return newIndexedCopyReaderAt(f.f, uint64(len(b.lines))), nil
+			}
 		}
+		f.LineWriter = fbs
 	}
+	defer func() {
+		if err != nil || from != f.f {
+			_ = from.Close() // close from since we do not need it anymore
+		}
+	}()
 
-	f.LineWriter = fbs
-
-	r := bufio.NewReaderSize(f.from, 1024)
+	r := bufio.NewReaderSize(from, 1024) // TODO: parametrize size?
 	for {
 		bb, err := r.ReadSlice('\n')
 		if err != nil {
 			if err == io.EOF {
-				return f.WriteLine(append(bb, '\n'))
+				if err := f.WriteLine(append(bb, '\n')); err != nil {
+					return nil, err
+				}
+				return f, nil
 			}
-			return err
+			return nil, err
 		}
 		if err := f.WriteLine(bb); err != nil {
-			return err
+			return nil, err
 		}
 	}
 }
 
-func (f *File) Close() error {
-	if err := f.from.Close(); err != nil {
-		return err
-	}
-	if f.tmp != nil { // pipe can not be deleted
-		if err := os.Remove(f.tmp.Name()); err != nil {
-			return fmt.Errorf("failed to remove temporary file: %w", err)
-		}
+func (f *file) Close() error {
+	if f.f != nil {
+		return f.f.Close()
 	}
 	return nil
 }
