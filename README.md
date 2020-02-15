@@ -23,10 +23,25 @@ jg [OPTIONS] SCHEMA
 
 
 ## Schema
-Schema is defined in [YAML](https://yaml.org) format.  
+Schema is defined in [YAML](https://yaml.org) format. Here is a small example:
+```yaml
+files:
+  file1:
+
+root:
+  type: object
+  fields:
+    field1: int
+    field2:
+      type: string
+      from: file1
+```
+
+> See [examples](/examples) for more.
+
 There are two top-level fields:
 * `root: node`
-* `files: object`: a mapping with file names.  
+* `files: object`: mapping with file names.  
   These names are **not** real paths in file system. They can be mapped to real files with [files](#files) CLI argument.
   ```yaml
   files:
@@ -36,7 +51,8 @@ There are two top-level fields:
     fileN:
   ```
 
-Each node (even `root`) must specify its type with `type` field:
+Each node (even `root`) must specify its type with [`type`](#types) field:
+
 ```yaml
 root:
   type: object
@@ -44,15 +60,19 @@ root:
     field1:
       type: int
 ```
-Supported types:
-* [bool](#bool)
-* [int](#int)
-* [float](#float)
-* [string](#string)
-* [object](#object)
-* [array](#array)
 
-Types [bool](#bool), [int](#int) and [float](#float) can be inlined.
+## Types:
+
+Here is the list of supported node types:
+
+* [`bool`](#bool)
+* [`int`](#int)
+* [`float`](#float)
+* [`string`](#string)
+* [`object`](#object)
+* [`array`](#array)
+
+Types [`bool`](#bool), [`int`](#int) and [`float`](#float) can be inlined.
 In this case, the defaults are applied for each type correspondingly.
 ```yaml
 boolInline: bool
@@ -134,7 +154,7 @@ A string value. It must specify one of the following fields:
 ### `array`
 An array object. It must specify its `elements`.
 * `elements: node`
-  Defines an element of array. It can be node of any type.
+  Defines an element of array. It can be node of any [type](#types).
 * `length: {uint | [uint, uint]}` (default: `10`)
   Length of array to generate. It can be one of the following types:
   * `uint`: exact length of array
@@ -155,15 +175,3 @@ An object. It must specify its `fields`:
     a: int
     b: float
   ```
-
-## Examples
-Here is a simple schema:
-```yaml
-root:
-  type: object
-  fields:
-    x: int
-    x: int
-```
-
-See [examples](/examples) for more.
