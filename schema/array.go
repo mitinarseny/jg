@@ -112,34 +112,28 @@ func (l Length) Rand() uint64 {
 }
 
 func (l *Length) Set(s string) error {
-	var (
-		min, max uint64
-		err      error
-	)
+	var err error
 	switch ss := strings.Split(s, ","); len(ss) {
 	case 1:
-		min, err = strconv.ParseUint(s, 10, 64)
+		l.Max, err = strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
-		max = min
+		l.Min = l.Max
+		return nil
 	case 2:
-		min, err = strconv.ParseUint(ss[0], 10, 64)
+		l.Min, err = strconv.ParseUint(ss[0], 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
-		max, err = strconv.ParseUint(ss[1], 10, 64)
+		l.Max, err = strconv.ParseUint(ss[1], 10, 64)
 		if err != nil {
 			return fmt.Errorf("unable to parse %q as int: %w", s, err)
 		}
+		return l.validate()
 	default:
 		return fmt.Errorf("length should be int[,int]")
 	}
-	*l = Length{
-		Min: min,
-		Max: max,
-	}
-	return l.validate()
 }
 
 func (l *Length) Type() string {

@@ -195,12 +195,9 @@ func newIndexedCopyReaderAt(f interface {
 }
 
 func (f *indexedCopyReaderAt) WriteLine(line []byte) error {
-	n, err := f.w.Write(line)
+	_, err := f.w.Write(line)
 	if err != nil {
 		return err
-	}
-	if n != len(line) {
-		return io.ErrShortWrite
 	}
 	return f.index.WriteLine(line)
 }
