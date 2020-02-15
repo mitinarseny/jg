@@ -54,7 +54,7 @@ func main() {
 }
 
 func run() error {
-	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
 	files := fs.StringToStringP(filesFlag, filesFlagShorthand, map[string]string{}, filesUsage)
@@ -68,7 +68,13 @@ func run() error {
 		_, _ = fmt.Fprintf(os.Stderr, usageTemplate, os.Args[0], fs.FlagUsages())
 	}
 
-	_ = fs.Parse(os.Args[1:]) // ignore error since flag.ExitOnError
+	switch err := fs.Parse(os.Args[1:]); err {
+	case flag.ErrHelp:
+		return nil
+	default:
+		return err
+	case nil:
+	}
 
 	switch n := fs.NArg(); n {
 	case 0:
