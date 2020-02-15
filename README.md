@@ -16,7 +16,17 @@ So there is no way to manually pass a dictionary to these generators.
 
 ## Usage
 ```bash
-jg [OPTIONS] SCHEMA
+λ jg --help
+Usage: jg [OPTIONS] SCHEMA
+
+JSON generator
+
+Options:
+  -a, --array [min,]max         Generate array of root objects
+  -f, --files stringToString    Bind files to their names in schema (default [])
+  -n, --nosort                  Do not sort keys in objects
+  -o, --output string           JSON output (default "/dev/stdout")
+      --output-buff-size uint   Buffer size for JSON output (0 means no buffer) (default 1024)
 ```
 
 ## Install
