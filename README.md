@@ -25,8 +25,8 @@ jg [OPTIONS] SCHEMA
 ## Schema
 Schema is defined in [YAML](https://yaml.org) format.  
 There are two top-level fields:
-* `root`: a root node
-* `files`: a mapping with file names.  
+* `root: node`
+* `files: object`: a mapping with file names.  
   These names are **not** real paths in file system. They can be mapped to real files with [files](#files) CLI argument.
   ```yaml
   files:
@@ -75,7 +75,7 @@ A boolean value. It simply generates `true` or `false` in output JSON.
 
 ### `int`
 An integer number. It can have only one of possible fields:
-* `range` (default `[0, 10]`)
+* `range: {int | [int, int]}` (default `[0, 10]`)  
   Range of posssible values (with maximum **included**). It can be one of the following types:
   * `int`: equivalent to `[0, int]`
     ```yaml
@@ -93,7 +93,7 @@ An integer number. It can have only one of possible fields:
 
 ### `float`
 An floating-point number. It can have only one of possible fields:
-* `range` (default `[0, 1]`)
+* `range: {int | [float, float]}` (default `[0, 1]`)  
   Interval of posssible values (with maximum **excluded**). It can be one of following types:
   * `float`: equivalent to `[0, float]`
     ```yaml
@@ -133,20 +133,20 @@ A string value. It must specify one of the following fields:
 An array object. It must specify its `elements`.
 * `elements: node`
   Defines an element of array. It can be node of any type.
-* `length` (default: `10`)
+* `length: {uint | [uint, uint]}` (default: `10`)
   Length of array to generate. It can be one of the following types:
-  * `uint`: equivalent to `[0, uint]`
+  * `uint`: exact length of array
     ```yaml
-    length: 10 # [0, 10]
+    length: 10
     ```
-  * `[uint, uint]`: minimum and maximum correspondingly
+  * `[uint, uint]`: minimum and maximum of length correspondingly
     ```yaml
     length: [0, 10]
     ```
 
 ### `object`
 An object. It must specify its `fields`:
-* `fields: obect`: mapping of field names to nodes. Example:
+* `fields: {obect}`: mapping of field names to nodes. Example:
   ```yaml
   type: object
   fields:
