@@ -92,7 +92,7 @@ func run() error {
 			return err
 		}
 	}
-	
+
 	var sch schema.Schema
 	decoder := yaml.NewDecoder(f)
 	decoder.KnownFields(true)
@@ -107,7 +107,6 @@ func run() error {
 	ctx := schema.NewContext()
 	defer ctx.Close()
 	ctx.SetSortKeys(!*noSortKeys)
-
 
 	for name := range sch.Files {
 		file, found := (*files)[name]
