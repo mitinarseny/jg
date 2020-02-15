@@ -45,7 +45,7 @@ func (e Errors) Error() string {
 
 type yamlError struct {
 	line int
-	err error
+	err  error
 }
 
 func (e *yamlError) Error() string {

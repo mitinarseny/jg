@@ -69,15 +69,10 @@ func (r *IntRange) UnmarshalYAML(value *yaml.Node) error {
 		if err := r.unmarshalYAMLSequence(value); err != nil {
 			return err
 		}
-	case yaml.MappingNode:
-		if err := r.unmarshalYAMLMapping(value); err != nil {
-			return err
-		}
 	default:
 		return &yamlError{
 			line: value.Line,
-			err:  fmt.Errorf("length should be <int64>, [<int64>, <int64>]" +
-				" or {min: <int64>, max: <int64>}, got: %s", value.Tag),
+			err:  fmt.Errorf("length should be {int64 | [int64, int64}, got: %s", value.Tag),
 		}
 	}
 	if err := r.validate(); err != nil {
@@ -106,22 +101,5 @@ func (r *IntRange) unmarshalYAMLSequence(value *yaml.Node) error {
 		return err
 	}
 	r.Min, r.Max = aux[0], aux[1]
-	return nil
-}
-
-func (r *IntRange) unmarshalYAMLMapping(value *yaml.Node) error {
-	var aux struct {
-		Min *int64 `yaml:"min"`
-		Max *int64 `yaml:"max"`
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	if aux.Min != nil {
-		r.Min = *aux.Min
-	}
-	if aux.Max != nil {
-		r.Max = *aux.Max
-	}
 	return nil
 }

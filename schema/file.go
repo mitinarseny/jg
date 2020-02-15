@@ -203,7 +203,7 @@ func (f *indexedCopyReaderAt) WriteLine(line []byte) error {
 }
 
 type file struct {
-	f *os.File
+	f     *os.File
 	isTmp bool
 	LineWriter
 }

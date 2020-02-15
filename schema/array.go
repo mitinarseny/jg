@@ -34,7 +34,7 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 	if aux.Elements == nil {
 		return &yamlError{
 			line: value.Line,
-			err:  errors.New("elements: required"),
+			err:  errors.New("\"elements\" is required"),
 		}
 	}
 	*a = Array{
@@ -155,15 +155,10 @@ func (l *Length) UnmarshalYAML(value *yaml.Node) error {
 		if err := l.unmarshalYAMLSequence(value); err != nil {
 			return err
 		}
-	case yaml.MappingNode:
-		if err := l.unmarshalYAMLMapping(value); err != nil {
-			return err
-		}
 	default:
 		return &yamlError{
 			line: value.Line,
-			err: fmt.Errorf("length should be <uint64>, [<uint64>, <uint64>]"+
-				" or {min: <uint64>, max: <uint64>}, got: %s", value.Tag),
+			err:  fmt.Errorf("length should be {uint64 | [uint64, uint64]} got: %s", value.Tag),
 		}
 	}
 	if err := l.validate(); err != nil {
@@ -192,22 +187,5 @@ func (l *Length) unmarshalYAMLSequence(value *yaml.Node) error {
 		return err
 	}
 	l.Min, l.Max = aux[0], aux[1]
-	return nil
-}
-
-func (l *Length) unmarshalYAMLMapping(value *yaml.Node) error {
-	var aux struct {
-		Min *uint64 `yaml:"min"`
-		Max *uint64 `yaml:"max"`
-	}
-	if err := value.Decode(&aux); err != nil {
-		return err
-	}
-	if aux.Min != nil {
-		l.Min = *aux.Min
-	}
-	if aux.Max != nil {
-		l.Max = *aux.Max
-	}
 	return nil
 }

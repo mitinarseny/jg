@@ -53,7 +53,6 @@ func run() error {
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
-	schemaPath := fs.StringP(schemaFlag, schemaFlagShorthand, "", schemaUsage)
 	files := fs.StringToStringP(filesFlag, filesFlagShorthand, map[string]string{}, filesUsage)
 	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, noSortKeysDefault, noSortKeysUsage)
 	out := fs.StringP(outFlag, outFlagShorthand, outDefault, outUsage)
@@ -68,18 +67,20 @@ func run() error {
 		return err
 	}
 
-	if flag.NArg() > 0 {
-		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
-		return fmt.Errorf("no additional args expected, got: %s", flag.Args())
-	}
-	if *schemaPath == "" {
+	switch n := fs.NArg(); n {
+	case 1: // schemaPath
+	case 0:
 		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
 		return fmt.Errorf("no schema provided")
+	default:
+		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
+		return fmt.Errorf("only 1 positional arg expected, got: %d", n)
 	}
+	schemaPath := fs.Arg(0)
 
-	f, err := os.Open(*schemaPath)
+	f, err := os.Open(schemaPath)
 	if err != nil {
-		return fmt.Errorf("unable to open schema %q: %w", schemaPath, err)
+		return err
 	}
 
 	var outFile *os.File
@@ -97,7 +98,7 @@ func run() error {
 	decoder := yaml.NewDecoder(f)
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&sch); err != nil {
-		return fmt.Errorf("unable to unmarshal schema: %w", err)
+		return fmt.Errorf("unable to unmarshal schema %q: %w", schemaPath, err)
 	}
 
 	if err := sch.Validate(); err != nil {

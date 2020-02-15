@@ -1,0 +1,60 @@
+files:
+  data1:
+  data2:
+
+root:
+  type: object
+  fields:
+    bool: bool
+    boolExplicit:
+      type: bool
+
+    integer: int
+    integerRange:
+      type: int
+      range: [1, 10] # default: [0, 100]
+    integerChoices:
+      type: int
+      choices:
+        - 2
+        - 3
+        - 5
+        - 7
+
+    float: float
+    floatRange:
+      type: float
+      range: [2.71, 3.14] # default: [0, 1]
+    floatChoices:
+      type: float
+      choices:
+        - 3.14
+        - 2.71
+        - 4.20
+
+    stringFrom1:
+      type: string
+      from: data1
+    stringFrom2:
+      type: string
+      from: data2
+    stringChoices:
+      type: string
+      choices:
+        - choice1
+        - choice2
+        - choice3
+
+    arrayExactLength:
+      type: array
+      length: 7      # default: [0, 10]
+      elements: int
+    arrayRangeLength:
+      type: array
+      length: [5, 10] # default: [0, 10]
+      elements: float
+
+    object:
+      type: object
+      fields:
+        field1: int

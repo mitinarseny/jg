@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -13,22 +14,26 @@ type File1 struct {
 
 type Schema struct {
 	Files map[string]*struct{} `yaml:"files"` // pointer because it is
-	Root  Object               `yaml:"root"`
+	Root  Node                 `yaml:"root"`
 }
 
 func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	var aux struct {
-		Files map[string]*struct{} `yaml:"files"`
-		Root  nodeMap              `yaml:"root"`
+		Files map[string]*struct{} `yaml:"files"` // pointer because it is
+		Root  *node                `yaml:"root"`
 	}
 	if err := value.Decode(&aux); err != nil {
 		return err
 	}
+	if aux.Root == nil {
+		return &yamlError{
+			line: value.Line,
+			err:  errors.New("root is not defined"),
+		}
+	}
 	*s = Schema{
 		Files: aux.Files,
-		Root: Object{
-			Fields: aux.Root,
-		},
+		Root:  aux.Root.Node,
 	}
 	return nil
 }
@@ -37,7 +42,7 @@ func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, length *Length) (err er
 	if length != nil {
 		a := Array{
 			Length:   *length,
-			Elements: &s.Root,
+			Elements: s.Root,
 		}
 		return a.GenerateJSON(ctx, w)
 	}
@@ -45,7 +50,11 @@ func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, length *Length) (err er
 }
 
 func (s *Schema) Validate() error {
-	return s.Root.Walk(func(n Node) (bool, error) {
+	walker, ok := s.Root.(Walker)
+	if !ok {
+		return nil
+	}
+	return walker.Walk(func(n Node) (bool, error) {
 		str, ok := n.(*String)
 		if !ok {
 			return true, nil

@@ -36,7 +36,7 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	if aux.Fields == nil {
 		return &yamlError{
 			line: value.Line,
-			err:  errors.New("fields are required"),
+			err:  errors.New("\"fields\" is required"),
 		}
 	}
 	*o = Object{

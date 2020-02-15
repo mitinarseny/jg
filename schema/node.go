@@ -22,7 +22,7 @@ type nodeType string
 
 const (
 	boolType    nodeType = "bool"
-	integerType nodeType = "integer"
+	integerType nodeType = "int"
 	floatType   nodeType = "float"
 	stringType  nodeType = "string"
 	arrayType   nodeType = "array"
