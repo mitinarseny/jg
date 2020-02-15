@@ -30,7 +30,21 @@ Options:
 ```
 
 ## Install
+At the moment, only installing by compiling source code is available.
+So you should have [Go](https://golang.org) installed.
+```bash
+# clone it outside GOPATH
+go get github.com/mitinarseny/jg
 
+# get dependencies using go modules (needs go 1.11+)
+go get ./...
+
+# build
+go build -o jg ./cmd
+
+# check it works
+./jg --help
+```
 
 ## Schema
 Schema is defined in [YAML](https://yaml.org) format. Here is a small example:
