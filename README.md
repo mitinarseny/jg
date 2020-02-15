@@ -42,7 +42,8 @@ root:
 There are two top-level fields:
 * `root: node`
 * `files: object`: mapping with file names.  
-  These names are **not** real paths in file system. They can be mapped to real files with [files](#files) CLI argument.
+  These names are **not** real paths in file system. They can be mapped to real files with [files](#files) CLI argument.  
+  Each file must contain strings separated with newline character `\n`.
   ```yaml
   files:
     file1:
