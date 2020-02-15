@@ -15,6 +15,14 @@ import (
 
 // Flags
 const (
+	usageTemplate = `Usage: %s [OPTIONS] SCHEMA
+
+JSON generator
+
+Options:
+%s
+`
+
 	arrayFlagShorthand = "a"
 	arrayFlag          = "array"
 	arrayUsage         = "Generate array of root objects"
@@ -34,12 +42,8 @@ const (
 	outDefault       = "/dev/stdout"
 
 	outBuffSizeFlag    = "output-buff-size"
-	outBuffSizeUsage   = "Buffer size for JSON output (0 or less means no buffer)"
+	outBuffSizeUsage   = "Buffer size for JSON output (0 means no buffer)"
 	outBuffSizeDefault = 1024
-
-	schemaFlagShorthand = "s"
-	schemaFlag          = "schema"
-	schemaUsage         = "Path to YAML schema"
 )
 
 func main() {
@@ -50,7 +54,7 @@ func main() {
 }
 
 func run() error {
-	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	fs.SetOutput(os.Stderr)
 
 	files := fs.StringToStringP(filesFlag, filesFlagShorthand, map[string]string{}, filesUsage)
@@ -60,20 +64,19 @@ func run() error {
 	arrayLen := &schema.Length{}
 	fs.VarP(arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
 
-	if err := fs.Parse(os.Args[1:]); err != nil {
-		if err == flag.ErrHelp {
-			return nil
-		}
-		return err
+	fs.Usage = func() {
+		_, _ = fmt.Fprintf(os.Stderr, usageTemplate, os.Args[0], fs.FlagUsages())
 	}
 
+	_ = fs.Parse(os.Args[1:]) // ignore error since flag.ExitOnError
+
 	switch n := fs.NArg(); n {
-	case 1: // schemaPath
 	case 0:
-		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
+		fs.Usage()
 		return fmt.Errorf("no schema provided")
+	case 1: // schemaPath
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
+		fs.Usage()
 		return fmt.Errorf("only 1 positional arg expected, got: %d", n)
 	}
 	schemaPath := fs.Arg(0)
