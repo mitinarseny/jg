@@ -85,8 +85,8 @@ An integer number. It can have only one of possible fields:
     ```yaml
     range: [0, 10]
     ```
-* `choices`
-  List of `int`s
+* `choices: []int`
+  Possible choices. Example:
   ```yaml
   choices: [2, 3, 5, 7, 11, 13, 17, 19]
   ```
@@ -103,7 +103,8 @@ An floating-point number. It can have only one of possible fields:
     ```yaml
     range: [5.2, 11.3]
     ```
-* `choices`: list of `float`s
+* `choices: []float`
+  Possible choices. Example:
   ```yaml
   choices: [3.14, 2.71, 4.20]
   ```
@@ -120,7 +121,8 @@ A string value. It must specify one of the following fields:
       type: string
       from: someFile
   ```
-* `choices`: list of `string`s
+* `choices: []string`
+  Possible choices. Example:
   ```yaml
   choices:
     - choice 1
@@ -146,7 +148,7 @@ An array object. It must specify its `elements`.
 
 ### `object`
 An object. It must specify its `fields`:
-* `fields: {obect}`: mapping of field names to nodes. Example:
+* `fields: object`: mapping of field names to nodes. Example:
   ```yaml
   type: object
   fields:
