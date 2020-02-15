@@ -32,10 +32,10 @@ func (c *Context) AddFile(name string, file string) error {
 	return nil
 }
 
-func (c *Context) Rand(name string) (string, error) {
+func (c *Context) Rand(name string) ([]byte, error) {
 	f, ok := c.files[name]
 	if !ok {
-		return "", fmt.Errorf("unknown file %q", name)
+		return nil, fmt.Errorf("unknown file %q", name)
 	}
 	return f.Rand()
 }
@@ -47,5 +47,12 @@ func (c *Context) Close() error {
 			errs = append(errs, err)
 		}
 	}
-	return errs.CheckLen()
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[1]
+	default:
+		return errs
+	}
 }

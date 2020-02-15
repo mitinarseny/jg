@@ -14,7 +14,7 @@ import (
 type LineWriter interface {
 	// WriteLine accepts slice of bytes ending with '\n'
 	WriteLine([]byte) error
-	Rand() (string, error)
+	Rand() ([]byte, error)
 }
 
 type BufferedLineSource interface {
@@ -25,19 +25,19 @@ type BufferedLineSource interface {
 type bufferedLineSource struct {
 	capacity uint64
 	size     uint64
-	lines    []string
+	lines    [][]byte
 }
 
 func newBufferedLineSource(capacity uint64) *bufferedLineSource {
 	return &bufferedLineSource{
 		capacity: capacity,
-		lines:    make([]string, 0), // zero because we do not know the length of each string
+		lines:    make([][]byte, 0), // zero because we do not know the length of each string
 	}
 }
 
-func (f *bufferedLineSource) Rand() (string, error) {
+func (f *bufferedLineSource) Rand() ([]byte, error) {
 	if len(f.lines) == 0 {
-		return "", nil
+		return []byte{}, nil
 	}
 	return f.lines[rand.Intn(len(f.lines))], nil
 }
@@ -48,14 +48,14 @@ func (f *bufferedLineSource) WriteLine(line []byte) error {
 		return ErrBufferFull
 	}
 	line = line[:l-1] // trim newline
-	f.lines = append(f.lines, string(line))
+	f.lines = append(f.lines, line)
 	f.size += uint64(l)
 	return nil
 }
 
 func (f *bufferedLineSource) FlushTo(src LineWriter) error {
 	for _, line := range f.lines {
-		if err := src.WriteLine([]byte(line + "\n")); err != nil {
+		if err := src.WriteLine(append(line, '\n')); err != nil {
 			return err
 		}
 		// TODO: reduce memory here
@@ -120,7 +120,7 @@ func (s *fallbackSource) WriteLine(line []byte) error {
 	return s.WriteLine(line)
 }
 
-func (s *fallbackSource) Rand() (string, error) {
+func (s *fallbackSource) Rand() ([]byte, error) {
 	return s.lineWriter().Rand()
 }
 
@@ -168,7 +168,7 @@ func newIndexedReaderAt(r io.ReaderAt, size uint64) *indexedReaderAt {
 	}
 }
 
-func (f *indexedReaderAt) Rand() (string, error) {
+func (f *indexedReaderAt) Rand() ([]byte, error) {
 	toInd := rand.Intn(len(f.index))
 	var from int64
 	if toInd > 0 {
@@ -176,7 +176,7 @@ func (f *indexedReaderAt) Rand() (string, error) {
 	}
 	buff := make([]byte, f.index[toInd]-from-1)
 	_, err := f.ReadAt(buff, from)
-	return string(buff), err
+	return buff, err
 }
 
 type indexedCopyReaderAt struct {
@@ -207,6 +207,7 @@ func (f *indexedCopyReaderAt) WriteLine(line []byte) error {
 
 type file struct {
 	f *os.File
+	isTmp bool
 	LineWriter
 }
 
@@ -240,6 +241,7 @@ func ScanFile(name string) (f *file, err error) {
 					return nil, fmt.Errorf("unable to create temporary file: %w", err)
 				}
 				f.f = tmp
+				f.isTmp = true
 				return newIndexedCopyReaderAt(f.f, uint64(len(b.lines))), nil
 			}
 		}
@@ -272,6 +274,9 @@ func ScanFile(name string) (f *file, err error) {
 func (f *file) Close() error {
 	if f.f != nil {
 		return f.f.Close()
+	}
+	if f.isTmp {
+		return os.Remove(f.f.Name())
 	}
 	return nil
 }

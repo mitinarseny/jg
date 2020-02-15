@@ -26,7 +26,9 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	}
 	*s = Schema{
 		Files: aux.Files,
-		Root:  Object(aux.Root),
+		Root: Object{
+			Fields: aux.Root,
+		},
 	}
 	return nil
 }
@@ -35,7 +37,7 @@ func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, length *Length) (err er
 	if length != nil {
 		a := Array{
 			Length:   *length,
-			Elements: s.Root,
+			Elements: &s.Root,
 		}
 		return a.GenerateJSON(ctx, w)
 	}
@@ -47,6 +49,9 @@ func (s *Schema) Validate() error {
 		str, ok := n.(*String)
 		if !ok {
 			return true, nil
+		}
+		if str.From == "" {
+			return false, nil
 		}
 		if _, found := s.Files[str.From]; !found {
 			return false, fmt.Errorf("undefined file: %q", str.From)

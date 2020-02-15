@@ -43,17 +43,6 @@ func (e Errors) Error() string {
 	return b.String()
 }
 
-func (e Errors) CheckLen() error {
-	switch len(e) {
-	case 0:
-		return nil
-	case 1:
-		return e[0]
-	default:
-		return e
-	}
-}
-
 type yamlError struct {
 	line int
 	err error

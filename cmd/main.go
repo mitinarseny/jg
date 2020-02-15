@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
+	"io"
 	"math/rand"
 	"os"
 	"time"
@@ -17,30 +17,34 @@ import (
 const (
 	arrayFlagShorthand = "a"
 	arrayFlag          = "array"
-	arrayUsage         = "Make array of root objects"
+	arrayUsage         = "Generate array of root objects"
 
 	filesFlagShorthand = "f"
 	filesFlag          = "files"
-	filesUsage         = "Bind files"
+	filesUsage         = "Bind files to their names in schema"
 
 	noSortKeysFlagShorthand = "n"
 	noSortKeysFlag          = "nosort"
 	noSortKeysUsage         = "Do not sort keys in objects"
+	noSortKeysDefault       = false
+
+	outFlagShorthand = "o"
+	outFlag          = "output"
+	outUsage         = "JSON output"
+	outDefault       = "/dev/stdout"
+
+	outBuffSizeFlag    = "output-buff-size"
+	outBuffSizeUsage   = "Buffer size for JSON output (0 or less means no buffer)"
+	outBuffSizeDefault = 1024
 
 	schemaFlagShorthand = "s"
 	schemaFlag          = "schema"
 	schemaUsage         = "Path to YAML schema"
 )
 
-const fileFlagPrefix = "f"
-
-func init() {
-	log.SetPrefix("")
-}
-
 func main() {
 	if err := run(); err != nil {
-		log.Printf("error: %s\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -51,9 +55,11 @@ func run() error {
 
 	schemaPath := fs.StringP(schemaFlag, schemaFlagShorthand, "", schemaUsage)
 	files := fs.StringToStringP(filesFlag, filesFlagShorthand, map[string]string{}, filesUsage)
-	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, false, noSortKeysUsage)
-	var arrayLen schema.Length
-	fs.VarP(&arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
+	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, noSortKeysDefault, noSortKeysUsage)
+	out := fs.StringP(outFlag, outFlagShorthand, outDefault, outUsage)
+	outBuffSize := fs.Uint(outBuffSizeFlag, outBuffSizeDefault, outBuffSizeUsage)
+	arrayLen := &schema.Length{}
+	fs.VarP(arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		if err == flag.ErrHelp {
@@ -63,9 +69,11 @@ func run() error {
 	}
 
 	if flag.NArg() > 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
 		return fmt.Errorf("no additional args expected, got: %s", flag.Args())
 	}
 	if *schemaPath == "" {
+		_, _ = fmt.Fprintf(os.Stderr, "Usage of %s:\n%s\n", os.Args[0], fs.FlagUsages())
 		return fmt.Errorf("no schema provided")
 	}
 
@@ -74,6 +82,17 @@ func run() error {
 		return fmt.Errorf("unable to open schema %q: %w", schemaPath, err)
 	}
 
+	var outFile *os.File
+	if *out == "/dev/stdout" {
+		outFile = os.Stdout
+	} else {
+		var err error
+		outFile, err = os.Open(*out)
+		if err != nil {
+			return err
+		}
+	}
+	
 	var sch schema.Schema
 	decoder := yaml.NewDecoder(f)
 	decoder.KnownFields(true)
@@ -89,6 +108,7 @@ func run() error {
 	defer ctx.Close()
 	ctx.SetSortKeys(!*noSortKeys)
 
+
 	for name := range sch.Files {
 		file, found := (*files)[name]
 		if !found {
@@ -99,11 +119,18 @@ func run() error {
 		}
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	bw := bufio.NewWriterSize(os.Stdout, 1024)
-	defer bw.Flush()
+	w := io.Writer(outFile)
+	if *outBuffSize > 0 {
+		bw := bufio.NewWriterSize(w, int(*outBuffSize))
+		defer bw.Flush()
+		w = bw
+	}
 
-	if err := sch.GenerateJSON(ctx, bw, &arrayLen); err != nil {
+	if arrayLen.Max == 0 {
+		arrayLen = nil
+	}
+	rand.Seed(time.Now().UnixNano())
+	if err := sch.GenerateJSON(ctx, w, arrayLen); err != nil {
 		return fmt.Errorf("unable to generate: %w", err)
 	}
 

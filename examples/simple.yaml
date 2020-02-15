@@ -2,37 +2,48 @@ files:
   file1:
 
 root:
-  boolInline: bool
+  bool: bool
   boolExplicit:
     type: bool
 
-  integerInline: integer # default: [0, 100]
-  integerExplicit:
+  integerInline: integer # default range: [0, 100]
+  integerRange:
     type: integer
     range: [0, 100]
+  integerChoices:
+    type: integer
+    choices:
+      - 2
+      - 3
+      - 5
+      - 7
 
-  floatInline: float # default: [0,1)
-  floatExplicit:
+  float: float # default range: [0,1)
+  floatRange:
     type: float
     range: [0, 1]
+  floatChoices:
+    type: float
+    choices:
+      - 3.14
+      - 2.71
 
-  stringExplicit:
+  stringFrom:
     type: string
     from: file1
+  stringChoices:
+    type: string
+    choices:
+      - choice1
+      - choice2
+      - choice3
 
-  arrayExplicit:
+  array:
     type: array
     length: 100 # default: [0, 10]
     elements: integer
 
-  objectExplicit:
-    type: object # required
+  object:
+    type: object
     fields:
       field1: integer
-
-#  enumExplicit:
-#    type: enum # required
-#    choices:
-#      - first
-#      - second
-#      - third
