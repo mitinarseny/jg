@@ -97,7 +97,7 @@ func run() error {
 		outFile = os.Stdout
 	} else {
 		var err error
-		outFile, err = os.Open(*out)
+		outFile, err = os.Create(*out)
 		if err != nil {
 			return err
 		}
