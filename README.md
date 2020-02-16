@@ -9,7 +9,7 @@ There are some other JSON generators:
 
 Unfortunately, these generators are not flexible enough in strings generation.
 They support only a fixed range of categories (e.g. *Name*, *City*, *Country*, etc...)
-which are *internally* used to take appropriate wordlist to select strings from.
+which are *internally* selected appropriate wordlist to take strings from.
 So there is no way to manually pass a dictionary to these generators.
 
 `jg` supports passing external dictionaries with [files](#files) flag.
