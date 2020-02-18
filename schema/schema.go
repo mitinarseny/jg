@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 
 	"gopkg.in/yaml.v3"
 )
@@ -38,15 +39,15 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, length *Length) (err error) {
+func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand, length *Length) (err error) {
 	if length != nil {
 		a := Array{
 			Length:   *length,
 			Elements: s.Root,
 		}
-		return a.GenerateJSON(ctx, w)
+		return a.GenerateJSON(ctx, w, r)
 	}
-	return s.Root.GenerateJSON(ctx, w)
+	return s.Root.GenerateJSON(ctx, w, r)
 }
 
 func (s *Schema) Validate() error {

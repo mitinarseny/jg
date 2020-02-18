@@ -44,18 +44,18 @@ func (a *Array) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (a *Array) GenerateJSON(ctx *Context, w io.Writer) error {
+func (a *Array) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 	if _, err := w.Write([]byte{'['}); err != nil {
 		return err
 	}
-	elNum := a.Length.Rand()
+	elNum := a.Length.Rand(r)
 	for i := uint64(0); i < elNum; i++ {
 		if i > 0 {
 			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
-		if err := a.Elements.GenerateJSON(ctx, w); err != nil {
+		if err := a.Elements.GenerateJSON(ctx, w, r); err != nil {
 			return a.wrapIndexErr(i, err)
 		}
 	}
@@ -104,11 +104,11 @@ type Length struct {
 	Min, Max uint64
 }
 
-func (l Length) Rand() uint64 {
+func (l Length) Rand(r *rand.Rand) uint64 {
 	if l.Min == l.Max {
 		return l.Min
 	}
-	return l.Min + rand.Uint64()%(l.Max-l.Min+1)
+	return l.Min + r.Uint64()%(l.Max-l.Min+1)
 }
 
 func (l *Length) Set(s string) error {

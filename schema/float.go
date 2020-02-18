@@ -39,12 +39,12 @@ func (f *Float) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (f *Float) GenerateJSON(_ *Context, w io.Writer) error {
+func (f *Float) GenerateJSON(_ *Context, w io.Writer, r *rand.Rand) error {
 	var num float64
 	if f.Range != nil {
-		num = f.Range.Rand()
+		num = f.Range.Rand(r)
 	} else if l := len(f.Choices); l > 0 {
-		num = f.Choices[rand.Intn(l)]
+		num = f.Choices[r.Intn(l)]
 	}
 	_, err := w.Write([]byte(strconv.FormatFloat(num, 'f', -1, 64)))
 	return err
@@ -54,11 +54,11 @@ type FloatRange struct {
 	Min, Max float64
 }
 
-func (r FloatRange) Rand() float64 {
+func (r FloatRange) Rand(rnd *rand.Rand) float64 {
 	if r.Min == r.Max {
 		return r.Min
 	}
-	return r.Min + (r.Max-r.Min)*rand.Float64()
+	return r.Min + (r.Max-r.Min)*rnd.Float64()
 }
 
 func (r *FloatRange) UnmarshalYAML(value *yaml.Node) (err error) {

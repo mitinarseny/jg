@@ -31,16 +31,16 @@ func (s *String) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (s *String) GenerateJSON(ctx *Context, w io.Writer) error {
+func (s *String) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 	var str string
 	if s.From != "" {
-		ss, err := ctx.Rand(s.From)
+		ss, err := ctx.Rand(r, s.From)
 		if err != nil {
 			return err
 		}
 		str = string(ss)
 	} else if l := len(s.Choices); l > 0 {
-		str = s.Choices[rand.Intn(l)]
+		str = s.Choices[r.Intn(l)]
 	}
 
 	_, err := w.Write(strconv.AppendQuote(make([]byte, 0, 3*len(str)/2), str))

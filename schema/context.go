@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 type Context struct {
@@ -32,12 +33,12 @@ func (c *Context) AddFile(name string, file string) error {
 	return nil
 }
 
-func (c *Context) Rand(name string) ([]byte, error) {
+func (c *Context) Rand(r *rand.Rand, name string) ([]byte, error) {
 	f, ok := c.files[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown file %q", name)
 	}
-	return f.Rand()
+	return f.Rand(r)
 }
 
 func (c *Context) Close() error {

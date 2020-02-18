@@ -12,7 +12,7 @@ var (
 	falseJSON = []byte("false")
 )
 
-func (b Bool) GenerateJSON(_ *Context, w io.Writer) error {
+func (b Bool) GenerateJSON(_ *Context, w io.Writer, _ *rand.Rand) error {
 	v := falseJSON
 	if rand.Float64() < 0.5 {
 		v = trueJSON

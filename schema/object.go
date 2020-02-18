@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"io"
+	"math/rand"
 	"sort"
 	"strconv"
 
@@ -45,10 +46,11 @@ func (o *Object) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (o *Object) GenerateJSON(ctx *Context, w io.Writer) error {
+func (o *Object) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 	if _, err := w.Write([]byte{'{'}); err != nil {
 		return err
 	}
+	// TODO: sort when creating
 	if ctx.SortKeys() {
 		if !o.sorted() {
 			o.sortKeys()
@@ -60,7 +62,7 @@ func (o *Object) GenerateJSON(ctx *Context, w io.Writer) error {
 				}
 			}
 			node := o.Fields[key]
-			if err := o.writeField(ctx, w, key, node); err != nil {
+			if err := o.writeField(ctx, w, r, key, node, ); err != nil {
 				return o.wrapErr(key, err)
 			}
 		}
@@ -73,7 +75,7 @@ func (o *Object) GenerateJSON(ctx *Context, w io.Writer) error {
 				}
 			}
 			wasFirst = true
-			if err := o.writeField(ctx, w, field, node); err != nil {
+			if err := o.writeField(ctx, w, r, field, node); err != nil {
 				return o.wrapErr(field, err)
 			}
 		}
@@ -82,11 +84,11 @@ func (o *Object) GenerateJSON(ctx *Context, w io.Writer) error {
 	return err
 }
 
-func (o *Object) writeField(ctx *Context, w io.Writer, field string, node Node) error {
+func (o *Object) writeField(ctx *Context, w io.Writer, r *rand.Rand, field string, node Node) error {
 	if _, err := w.Write(append(strconv.AppendQuote(make([]byte, 0, 3*len(field)/2), field), ':')); err != nil {
 		return err
 	}
-	return node.GenerateJSON(ctx, w)
+	return node.GenerateJSON(ctx, w, r)
 }
 
 func (o *Object) Walk(fn WalkFn) error {

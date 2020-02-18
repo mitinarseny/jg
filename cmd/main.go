@@ -54,6 +54,17 @@ func main() {
 }
 
 func run() error {
+	// ff, err := os.Create("cpu.pprof")
+	// if err != nil {
+	// 	log.Fatal("could not create CPU profile: ", err)
+	// }
+	// defer ff.Close()
+	// if err := pprof.StartCPUProfile(ff); err != nil {
+	// 	log.Fatal("could not start CPU profile: ", err)
+	// }
+	// defer pprof.StopCPUProfile()
+
+
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
@@ -138,8 +149,8 @@ func run() error {
 	if arrayLen.Max == 0 {
 		arrayLen = nil
 	}
-	rand.Seed(time.Now().UnixNano())
-	if err := sch.GenerateJSON(ctx, w, arrayLen); err != nil {
+	 // TODO: crypto/rand seed
+	if err := sch.GenerateJSON(ctx, w, rand.New(rand.NewSource(time.Now().UnixNano())), arrayLen); err != nil {
 		return fmt.Errorf("unable to generate: %w", err)
 	}
 

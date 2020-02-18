@@ -14,7 +14,7 @@ import (
 type LineWriter interface {
 	// WriteLine accepts slice of bytes ending with '\n'
 	WriteLine([]byte) error
-	Rand() ([]byte, error)
+	Rand(r *rand.Rand) ([]byte, error)
 }
 
 type BufferedLineSource interface {
@@ -35,11 +35,11 @@ func newBufferedLineSource(capacity uint64) *bufferedLineSource {
 	}
 }
 
-func (f *bufferedLineSource) Rand() ([]byte, error) {
+func (f *bufferedLineSource) Rand(r *rand.Rand) ([]byte, error) {
 	if len(f.lines) == 0 {
 		return []byte{}, nil
 	}
-	return f.lines[rand.Intn(len(f.lines))], nil
+	return f.lines[r.Intn(len(f.lines))], nil
 }
 
 func (f *bufferedLineSource) WriteLine(line []byte) error {
@@ -54,13 +54,13 @@ func (f *bufferedLineSource) WriteLine(line []byte) error {
 }
 
 func (f *bufferedLineSource) FlushTo(src LineWriter) error {
-	for _, line := range f.lines {
-		if err := src.WriteLine(append(line, '\n')); err != nil {
+	for len(f.lines) > 0 {
+		if err := src.WriteLine(append(f.lines[0], '\n')); err != nil {
 			return err
 		}
-		// TODO: reduce memory here
+		f.lines = f.lines[1:]
 	}
-	// TODO: f.size = 0
+	f.lines = nil // delete slice
 	return nil
 }
 
@@ -120,8 +120,8 @@ func (s *fallbackSource) WriteLine(line []byte) error {
 	return s.WriteLine(line)
 }
 
-func (s *fallbackSource) Rand() ([]byte, error) {
-	return s.lineWriter().Rand()
+func (s *fallbackSource) Rand(r *rand.Rand) ([]byte, error) {
+	return s.lineWriter().Rand(r)
 }
 
 func (s *fallbackSource) close(lw LineWriter) error {
@@ -168,8 +168,8 @@ func newIndexedReaderAt(r io.ReaderAt, size uint64) *indexedReaderAt {
 	}
 }
 
-func (f *indexedReaderAt) Rand() ([]byte, error) {
-	toInd := rand.Intn(len(f.index))
+func (f *indexedReaderAt) Rand(r *rand.Rand) ([]byte, error) {
+	toInd := r.Intn(len(f.index))
 	var from int64
 	if toInd > 0 {
 		from = f.index[toInd-1]

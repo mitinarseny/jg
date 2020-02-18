@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 
 	"gopkg.in/yaml.v3"
 )
@@ -11,7 +12,7 @@ import (
 type WalkFn func(Node) (bool, error)
 
 type Node interface {
-	GenerateJSON(*Context, io.Writer) error
+	GenerateJSON(*Context, io.Writer, *rand.Rand) error
 }
 
 type Walker interface {

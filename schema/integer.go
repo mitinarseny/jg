@@ -39,12 +39,12 @@ func (i *Integer) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (i *Integer) GenerateJSON(_ *Context, w io.Writer) error {
+func (i *Integer) GenerateJSON(_ *Context, w io.Writer, r *rand.Rand) error {
 	var num int64
 	if i.Range != nil {
-		num = i.Range.Rand()
+		num = i.Range.Rand(r)
 	} else if l := len(i.Choices); l > 0 {
-		num = i.Choices[rand.Intn(l)]
+		num = i.Choices[r.Intn(l)]
 	}
 	_, err := w.Write([]byte(strconv.FormatInt(num, 10)))
 	return err
@@ -54,8 +54,8 @@ type IntRange struct {
 	Min, Max int64
 }
 
-func (r IntRange) Rand() int64 {
-	return r.Min + rand.Int63n(r.Max-r.Min+1)
+func (r IntRange) Rand(rnd *rand.Rand) int64 {
+	return r.Min + rnd.Int63n(r.Max-r.Min+1)
 }
 
 func (r *IntRange) UnmarshalYAML(value *yaml.Node) error {
