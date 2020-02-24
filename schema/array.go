@@ -117,22 +117,22 @@ func (l *Length) Set(s string) error {
 	case 1:
 		l.Max, err = strconv.ParseUint(s, 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+			return fmt.Errorf("unable to parse %q as uint: %w", s, err)
 		}
 		l.Min = l.Max
 		return nil
 	case 2:
 		l.Min, err = strconv.ParseUint(ss[0], 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+			return fmt.Errorf("unable to parse %q as uint: %w", s, err)
 		}
 		l.Max, err = strconv.ParseUint(ss[1], 10, 64)
 		if err != nil {
-			return fmt.Errorf("unable to parse %q as int: %w", s, err)
+			return fmt.Errorf("unable to parse %q as uint: %w", s, err)
 		}
 		return l.validate()
 	default:
-		return fmt.Errorf("length should be int[,int]")
+		return fmt.Errorf("length should be [int,]int")
 	}
 }
 

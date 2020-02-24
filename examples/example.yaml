@@ -28,9 +28,9 @@ root:
     floatChoices:
       type: float
       choices:
-        - 3.14
-        - 2.71
-        - 4.20
+       - 3.14
+       - 2.71
+       - 4.20
 
     stringFrom1:
       type: string
