@@ -1,6 +1,6 @@
 # jg
 `jg` is a [JSON](https://www.json.org/json-en.html) generator written in [Go](https://golang.org).  
-It can be used to generate JSON documents of any complexity from human-friendly [YAML schema](#schema).
+It can generate JSON documents of any complexity from human-friendly [YAML schema](#schema).
 
 ## Why another JSON generator?
 There are some other JSON generators:
