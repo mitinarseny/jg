@@ -86,7 +86,7 @@ root:
       type: int
 ```
 
-## Types:
+## Types
 
 Here is the list of supported node types:
 
