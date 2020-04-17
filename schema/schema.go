@@ -39,15 +39,16 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand, length *Length) (err error) {
-	if length != nil {
-		a := Array{
-			Length:   *length,
-			Elements: s.Root,
-		}
-		return a.GenerateJSON(ctx, w, r)
-	}
+func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 	return s.Root.GenerateJSON(ctx, w, r)
+}
+
+func (s *Schema) GenerateJSONArray(ctx *Context, w io.Writer, r *rand.Rand, length *Length) error {
+	a := Array{
+		Length:   *length,
+		Elements: s.Root,
+	}
+	return a.GenerateJSON(ctx, w, r)
 }
 
 func (s *Schema) Validate() error {

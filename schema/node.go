@@ -133,7 +133,7 @@ func (n *node) unmarshalYAMLMapping(value *yaml.Node) error {
 	return nil
 }
 
-// nodeSlice is a helper type for unmarshal map[string]Node
+// nodeMap is a helper type for unmarshal map[string]Node
 type nodeMap map[string]Node
 
 func (n *nodeMap) UnmarshalYAML(value *yaml.Node) error {

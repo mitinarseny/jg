@@ -104,7 +104,7 @@ type Length struct {
 	Min, Max uint64
 }
 
-func (l Length) Rand(r *rand.Rand) uint64 {
+func (l *Length) Rand(r *rand.Rand) uint64 {
 	if l.Min == l.Max {
 		return l.Min
 	}
@@ -178,7 +178,11 @@ func (l *Length) validate() error {
 }
 
 func (l *Length) unmarshalYAMLScalar(value *yaml.Node) error {
-	return value.Decode(&l.Max)
+	if err := value.Decode(&l.Max); err != nil {
+		return err
+	}
+	l.Min = l.Max
+	return nil
 }
 
 func (l *Length) unmarshalYAMLSequence(value *yaml.Node) error {

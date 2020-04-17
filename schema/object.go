@@ -61,8 +61,7 @@ func (o *Object) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 					return err
 				}
 			}
-			node := o.Fields[key]
-			if err := o.writeField(ctx, w, r, key, node, ); err != nil {
+			if err := o.writeField(ctx, w, r, key, o.Fields[key]); err != nil {
 				return o.wrapErr(key, err)
 			}
 		}

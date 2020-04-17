@@ -28,7 +28,7 @@ Options:
 
 	arrayFlagShorthand = "a"
 	arrayFlag          = "array"
-	arrayUsage         = "Generate array of root objects"
+	arrayUsage         = "Generate array of root objects (0 means do not wrap in array)"
 
 	filesFlagShorthand = "f"
 	filesFlag          = "files"
@@ -64,8 +64,8 @@ func run() error {
 	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, noSortKeysDefault, noSortKeysUsage)
 	out := fs.StringP(outFlag, outFlagShorthand, outDefault, outUsage)
 	outBuffSize := fs.Uint(outBuffSizeFlag, outBuffSizeDefault, outBuffSizeUsage)
-	arrayLen := &schema.Length{}
-	fs.VarP(arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
+	var arrayLen schema.Length
+	fs.VarP(&arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
 
 	fs.Usage = func() {
 		_, _ = fmt.Fprintf(os.Stderr, usageTemplate, os.Args[0], fs.FlagUsages())
@@ -138,13 +138,14 @@ func run() error {
 		w = bw
 	}
 
-	if arrayLen.Max == 0 {
-		arrayLen = nil
-	}
-
 	var seed uint64
 	if err := binary.Read(crand.Reader, binary.BigEndian, &seed); err != nil {
 		seed = uint64(time.Now().UnixNano())
 	}
-	return sch.GenerateJSON(ctx, w, rand.New(rand.NewSource(int64(seed))), arrayLen)
+	rnd := rand.New(rand.NewSource(int64(seed)))
+
+	if arrayLen.Max == 0 {
+		return sch.GenerateJSON(ctx, w, rnd)
+	}
+	return sch.GenerateJSONArray(ctx, w, rnd, &arrayLen)
 }
