@@ -83,7 +83,7 @@ func BenchmarkArray_GenerateJSON_Large(b *testing.B) {
 			Min: 1e7,
 			Max: 1e7,
 		},
-		Elements: nil,
+		Elements: testNode{},
 	}
 	for i := 0; i < b.N; i++ {
 		_ = n.GenerateJSON(nil, ioutil.Discard, nil)
