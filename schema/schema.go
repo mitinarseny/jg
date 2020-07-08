@@ -40,15 +40,29 @@ func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
 }
 
 func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
-	return s.Root.GenerateJSON(ctx, w, r)
+	if err := s.Root.GenerateJSON(ctx, w, r); err != nil {
+		return err
+	}
+	_, err := w.Write([]byte{'\n'})
+	return err
 }
 
-func (s *Schema) GenerateJSONArray(ctx *Context, w io.Writer, r *rand.Rand, length *Length) error {
-	a := Array{
-		Length:   *length,
-		Elements: s.Root,
+func (s *Schema) StreamJSON(ctx *Context, w io.Writer, r *rand.Rand, count int64) error {
+	switch count {
+	case -1:
+		for {
+			if err := s.GenerateJSON(ctx, w, r); err != nil {
+				return err
+			}
+		}
+	default:
+		for i := int64(0); i < count; i++ {
+			if err := s.GenerateJSON(ctx, w, r); err != nil {
+				return err
+			}
+		}
 	}
-	return a.GenerateJSON(ctx, w, r)
+	return nil
 }
 
 func (s *Schema) Validate() error {

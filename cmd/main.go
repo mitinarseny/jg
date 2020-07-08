@@ -47,6 +47,10 @@ Options:
 	outBuffSizeFlag    = "output-buff-size"
 	outBuffSizeUsage   = "Buffer size for JSON output (0 means no buffer)"
 	outBuffSizeDefault = 1024
+
+	streamFlagShorthand = "s"
+	streamFlag          = "stream"
+	streamUsage         = "Stream root objects delimited by newline (-1 means endless)"
 )
 
 func main() {
@@ -64,6 +68,7 @@ func run() error {
 	noSortKeys := fs.BoolP(noSortKeysFlag, noSortKeysFlagShorthand, noSortKeysDefault, noSortKeysUsage)
 	out := fs.StringP(outFlag, outFlagShorthand, outDefault, outUsage)
 	outBuffSize := fs.Uint(outBuffSizeFlag, outBuffSizeDefault, outBuffSizeUsage)
+	stream := fs.Int64P(streamFlag, streamFlagShorthand, 0, streamUsage)
 	var arrayLen schema.Length
 	fs.VarP(&arrayLen, arrayFlag, arrayFlagShorthand, arrayUsage)
 
@@ -88,6 +93,12 @@ func run() error {
 		fs.Usage()
 		return fmt.Errorf("only 1 positional arg expected, got: %d", n)
 	}
+
+	if *stream != 0 && arrayLen.Max != 0 {
+		fs.Usage()
+		return fmt.Errorf("'--array' and '--stream' can not be used at the same time")
+	}
+
 	schemaPath := fs.Arg(0)
 
 	f, err := os.Open(schemaPath)
@@ -144,8 +155,16 @@ func run() error {
 	}
 	rnd := rand.New(rand.NewSource(int64(seed)))
 
-	if arrayLen.Max == 0 {
+	switch {
+	case arrayLen.Max != 0:
+		a := schema.Array{
+			Length:   arrayLen,
+			Elements: sch.Root,
+		}
+		return a.GenerateJSON(ctx, w, rnd)
+	case *stream != 0:
+		return sch.StreamJSON(ctx, w, rnd, *stream)
+	default:
 		return sch.GenerateJSON(ctx, w, rnd)
 	}
-	return sch.GenerateJSONArray(ctx, w, rnd, &arrayLen)
 }

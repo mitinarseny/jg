@@ -22,11 +22,12 @@ Usage: jg [OPTIONS] SCHEMA
 JSON generator
 
 Options:
-  -a, --array [min,]max         Generate array of root objects
+  -a, --array [min,]max         Generate array of root objects (0 means do not wrap in array)
   -f, --files stringToString    Bind files to their names in schema (default [])
   -n, --nosort                  Do not sort keys in objects
   -o, --output string           JSON output (default "/dev/stdout")
       --output-buff-size uint   Buffer size for JSON output (0 means no buffer) (default 1024)
+  -s, --stream int              Stream root objects delimited by newline (-1 means endless)
 ```
 
 ## Install
