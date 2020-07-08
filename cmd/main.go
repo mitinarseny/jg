@@ -96,7 +96,7 @@ func run() error {
 
 	if *stream != 0 && arrayLen.Max != 0 {
 		fs.Usage()
-		return fmt.Errorf("'--array' and '--stream' can not be used at the same time")
+		return fmt.Errorf("'--%s' and '--%s' flags can not be used at the same time", arrayFlag, streamFlag)
 	}
 
 	schemaPath := fs.Arg(0)
