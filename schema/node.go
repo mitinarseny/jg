@@ -95,42 +95,22 @@ func (n *node) unmarshalYAMLMapping(value *yaml.Node) error {
 	case boolType:
 		n.Node = Bool{}
 	case integerType:
-		var tmp Integer
-		if err := value.Decode(&tmp); err != nil {
-			return err
-		}
-		n.Node = &tmp
+		n.Node = &Integer{}
 	case floatType:
-		var tmp Float
-		if err := value.Decode(&tmp); err != nil {
-			return err
-		}
-		n.Node = &tmp
+		n.Node = &Float{}
 	case stringType:
-		var tmp String
-		if err := value.Decode(&tmp); err != nil {
-			return err
-		}
-		n.Node = &tmp
+		n.Node = &String{}
 	case arrayType:
-		var tmp Array
-		if err := value.Decode(&tmp); err != nil {
-			return err
-		}
-		n.Node = &tmp
+		n.Node = &Array{}
 	case objectType:
-		var tmp Object
-		if err := value.Decode(&tmp); err != nil {
-			return err
-		}
-		n.Node = &tmp
+		n.Node = &Object{}
 	default:
 		return &yamlError{
 			line: value.Line,
 			err:  fmt.Errorf("unsupported type: %q", aux.Type),
 		}
 	}
-	return nil
+	return value.Decode(n.Node)
 }
 
 // nodeMap is a helper type for unmarshal map[string]Node

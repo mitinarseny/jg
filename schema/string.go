@@ -27,7 +27,6 @@ func (s *String) UnmarshalYAML(value *yaml.Node) error {
 			err:  errors.New("string should have either from or choices"),
 		}
 	}
-	*s = String(tmp)
 	return nil
 }
 

@@ -106,15 +106,9 @@ func run() error {
 		return err
 	}
 
-	var outFile *os.File
-	if *out == "/dev/stdout" {
-		outFile = os.Stdout
-	} else {
-		var err error
-		outFile, err = os.Create(*out)
-		if err != nil {
-			return err
-		}
+	outFile, err := os.Create(*out)
+	if err != nil {
+		return err
 	}
 
 	var sch schema.Schema
