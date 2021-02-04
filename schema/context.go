@@ -2,17 +2,18 @@ package schema
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 )
 
 type Context struct {
 	sortKeys bool
-	files    map[string]*file
+	files    map[string]LineSource
 }
 
 func NewContext() *Context {
 	return &Context{
-		files: make(map[string]*file),
+		files: make(map[string]LineSource),
 	}
 }
 
@@ -44,16 +45,9 @@ func (c *Context) Rand(r *rand.Rand, name string) ([]byte, error) {
 func (c *Context) Close() error {
 	var errs Errors
 	for _, f := range c.files {
-		if err := f.Close(); err != nil {
-			errs = append(errs, err)
+		if cl, ok := f.(io.Closer); ok {
+			errs.Add(cl.Close())
 		}
 	}
-	switch len(errs) {
-	case 0:
-		return nil
-	case 1:
-		return errs[1]
-	default:
-		return errs
-	}
+	return errs.Err()
 }

@@ -64,32 +64,7 @@ func (a *Array) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 }
 
 func (a *Array) Walk(fn WalkFn) (err error) {
-	var errs Errors
-	defer func() {
-		switch len(errs) {
-		case 0:
-			err = nil
-		case 1:
-			err = errs[0]
-		default:
-			err = errs
-		}
-	}()
-	proceed, err := fn(a.Elements)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	if !proceed {
-		return
-	}
-	walker, ok := a.Elements.(Walker)
-	if !ok {
-		return
-	}
-	if err := walker.Walk(fn); err != nil {
-		errs = append(errs, a.wrapErr(err))
-	}
-	return
+	return a.wrapErr(Walk(a.Elements, fn))
 }
 
 func (a *Array) wrapErr(err error) error {

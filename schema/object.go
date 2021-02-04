@@ -93,29 +93,9 @@ func (o *Object) writeField(ctx *Context, w io.Writer, r *rand.Rand, field strin
 func (o *Object) Walk(fn WalkFn) error {
 	var errs Errors
 	for k, n := range o.Fields {
-		proceed, err := fn(n)
-		if err != nil {
-			errs = append(errs, o.wrapErr(k, err))
-		}
-		if !proceed {
-			continue
-		}
-		walker, ok := n.(Walker)
-		if !ok {
-			continue
-		}
-		if err := walker.Walk(fn); err != nil {
-			errs = append(errs, o.wrapErr(k, err))
-		}
+		errs.Add(o.wrapErr(k, Walk(n, fn)))
 	}
-	switch len(errs) {
-	case 0:
-		return nil
-	case 1:
-		return errs[0]
-	default:
-		return errs
-	}
+	return errs.Err()
 }
 
 func (o *Object) wrapErr(field string, err error) error {

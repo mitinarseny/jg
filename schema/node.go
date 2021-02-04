@@ -19,6 +19,17 @@ type Walker interface {
 	Walk(fn WalkFn) error
 }
 
+func Walk(n Node, fn WalkFn) error {
+	proceed, err := fn(n)
+	if !proceed {
+		return err
+	}
+	if w, ok := n.(Walker); ok {
+		return (&Errors{}).Add(err).Add(w.Walk(fn)).Err()
+	}
+	return err
+}
+
 type nodeType string
 
 const (

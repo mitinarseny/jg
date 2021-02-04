@@ -32,6 +32,17 @@ func WrapErr(name string, err error) error {
 
 type Errors []error
 
+func (e *Errors) Add(err error) *Errors {
+	if err == nil {
+		return e
+	}
+	if e == nil {
+		*e = make(Errors, 0, 1)
+	}
+	*e = append(*e, err)
+	return e
+}
+
 func (e Errors) Error() string {
 	var b strings.Builder
 	for i, err := range e {
@@ -41,6 +52,17 @@ func (e Errors) Error() string {
 		fmt.Fprint(&b, err)
 	}
 	return b.String()
+}
+
+func (e Errors) Err() error {
+	switch len(e) {
+	case 0:
+		return nil
+	case 1:
+		return e[0]
+	default:
+		return e
+	}
 }
 
 type yamlError struct {

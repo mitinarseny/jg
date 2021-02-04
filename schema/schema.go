@@ -9,10 +9,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type File1 struct {
-	ss *String
-}
-
 type Schema struct {
 	Files map[string]*struct{} `yaml:"files"` // pointer because it is
 	Root  Node                 `yaml:"root"`
@@ -48,39 +44,28 @@ func (s *Schema) GenerateJSON(ctx *Context, w io.Writer, r *rand.Rand) error {
 }
 
 func (s *Schema) StreamJSON(ctx *Context, w io.Writer, r *rand.Rand, count int64) error {
-	switch count {
-	case -1:
-		for {
-			if err := s.GenerateJSON(ctx, w, r); err != nil {
-				return err
-			}
+	// TODO: pass context.Context to write last row properly
+	for count != 0 {
+		if err := s.GenerateJSON(ctx, w, r); err != nil {
+			return err
 		}
-	default:
-		for i := int64(0); i < count; i++ {
-			if err := s.GenerateJSON(ctx, w, r); err != nil {
-				return err
-			}
+		if count > 0 {
+			count--
 		}
 	}
 	return nil
 }
 
 func (s *Schema) Validate() error {
-	walker, ok := s.Root.(Walker)
-	if !ok {
-		return nil
-	}
-	return walker.Walk(func(n Node) (bool, error) {
-		str, ok := n.(*String)
-		if !ok {
-			return true, nil
+	return Walk(s.Root, func(n Node) (bool, error) {
+		if str, ok := n.(*String); ok {
+			if sf, ok := str.StringRander.(StringFile); ok {
+				fn := sf.Filename()
+				if _, found := s.Files[fn]; !found {
+					return false, fmt.Errorf("undefined file: %q", fn)
+				}
+			}
 		}
-		if str.From == "" {
-			return false, nil
-		}
-		if _, found := s.Files[str.From]; !found {
-			return false, fmt.Errorf("undefined file: %q", str.From)
-		}
-		return false, nil
+		return true, nil
 	})
 }

@@ -151,11 +151,10 @@ func run() error {
 
 	switch {
 	case arrayLen.Max != 0:
-		a := schema.Array{
-			Length:   arrayLen,
+		return (&schema.Array{
+			Length: arrayLen,
 			Elements: sch.Root,
-		}
-		return a.GenerateJSON(ctx, w, rnd)
+		}).GenerateJSON(ctx, w, rnd)
 	case *stream != 0:
 		return sch.StreamJSON(ctx, w, rnd, *stream)
 	default:
