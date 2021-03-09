@@ -187,19 +187,6 @@ func ScanFile(name string) (LineSource, error) {
 		}
 	}
 	return s, sc.Err()
-	r := bufio.NewReaderSize(from, maxMemSize)
-	for {
-		bb, err := r.ReadBytes('\n')
-		if err != nil {
-			if err == io.EOF {
-				err = s.WriteLine(bb)
-			}
-			return s, err
-		}
-		if err := s.WriteLine(bb); err != nil {
-			return nil, err
-		}
-	}
 }
 
 func makeSource(f *os.File) (s LineSource, keepOpen bool, err error) {
