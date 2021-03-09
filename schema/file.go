@@ -14,7 +14,7 @@ import (
 const maxMemSize = 1 << 24 // 16MB
 
 type LineSource interface {
-	// WriteLine accepts slice of bytes ending with '\n'
+	// WriteLine writes a line. Given slice of bytes should not end with '\n'
 	WriteLine([]byte) error
 
 	Rand(r *rand.Rand) ([]byte, error)
@@ -86,14 +86,14 @@ func (f *bufferedSource) WriteLine(line []byte) error {
 	if f.size+uint64(len(line)) > f.capacity {
 		return ErrBufferFull
 	}
-	f.lines = append(f.lines, line[:len(line)-1]) // trim newline
+	f.lines = append(f.lines, line)
 	f.size += uint64(len(line) - 1)
 	return nil
 }
 
 func (f *bufferedSource) FlushTo(src LineSource) error {
 	for len(f.lines) > 0 {
-		if err := src.WriteLine(append(f.lines[0], '\n')); err != nil {
+		if err := src.WriteLine(f.lines[0]); err != nil {
 			return err
 		}
 		f.lines = f.lines[1:]
@@ -103,6 +103,7 @@ func (f *bufferedSource) FlushTo(src LineSource) error {
 	return nil
 }
 
+// index is a slice of indexes of ENDs of strings
 type index []int64
 
 func newIndexer(size uint64) index {
@@ -116,11 +117,6 @@ func (f *index) WriteLine(line []byte) error {
 	}
 	*f = append(*f, prev+int64(len(line)))
 	return nil
-}
-
-type readerCloserAt interface {
-	io.ReaderAt
-	io.Closer
 }
 
 type indexedReaderAt struct {
@@ -162,7 +158,7 @@ func newIndexedCopyReaderAt(f interface {
 }
 
 func (f *indexedCopyReaderAt) WriteLine(line []byte) error {
-	_, err := f.w.Write(line)
+	_, err := f.w.Write(append(line, '\n'))
 	if err != nil {
 		return err
 	}
@@ -179,28 +175,31 @@ func ScanFile(name string) (LineSource, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !keepOpen {
+		defer from.Close()
+	}
 
+	sc := bufio.NewScanner(from)
+	for sc.Scan() {
+
+		if err := s.WriteLine([]byte(sc.Text())); err != nil {
+			return nil, err
+		}
+	}
+	return s, sc.Err()
 	r := bufio.NewReaderSize(from, maxMemSize)
 	for {
-		bb, err := r.ReadSlice('\n')
+		bb, err := r.ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
-				if err := s.WriteLine(append(bb, '\n')); err != nil {
-					return nil, err
-				}
-				return s, nil
+				err = s.WriteLine(bb)
 			}
-			return nil, err
+			return s, err
 		}
 		if err := s.WriteLine(bb); err != nil {
 			return nil, err
 		}
 	}
-
-	if !keepOpen {
-		return s, from.Close()
-	}
-	return s, nil
 }
 
 func makeSource(f *os.File) (s LineSource, keepOpen bool, err error) {
